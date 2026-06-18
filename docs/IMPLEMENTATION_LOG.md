@@ -284,3 +284,105 @@ passing test, and the full suite (111 tests) and Pint pass; the only unverified
 item is a defensive race backstop, which is non-critical and listed as an
 explicit follow-up, so the build-plan definition of done for Phase 2 is satisfied
 — hence **Complete with follow-up** rather than **Complete**.
+
+---
+
+## 2026-06-18 — Vue search interface
+
+**Build-plan phase:** Phase 3 — Vue search interface
+**Status:** Complete with follow-up
+**Commit:** Pending
+
+### Summary
+
+The first frontend phase: a standalone Vue 3 SPA mounted into the existing
+minimal Blade shell, consuming only `GET /api/shows`. Pinia is registered in
+`resources/js/app.js`; a native-`fetch` wrapper (`services/api.js`) is the single
+boundary to the Laravel API; a `shows` Pinia store owns query/results/loading/
+error and provides `AbortController` stale-response protection; a `useDebounce`
+composable debounces the search input (~300 ms). Seven components render the
+header/search, the responsive card grid (with loading skeletons), and shared
+empty/error states. Behaviour: initial unfiltered fetch on mount, debounced
+title search, loading/empty/error states, plain-text summaries, lazy-loaded
+images with a missing-image placeholder, and a defensive ≤100 results cap.
+
+### Key files
+
+- `resources/js/app.js` (Pinia registration), `resources/js/App.vue`
+- `resources/js/services/api.js`, `resources/js/stores/shows.js`,
+  `resources/js/composables/useDebounce.js`
+- `resources/js/components/layout/AppHeader.vue`
+- `resources/js/components/shows/{SearchInput,ShowGrid,ShowCard,ShowCardSkeleton}.vue`
+- `resources/js/components/shared/{EmptyState,ErrorAlert}.vue`
+- `package.json` / `package-lock.json` (adds `pinia ^3.0.4`)
+
+### Decisions and alignment
+
+- Native `fetch` + `AbortController`, no Axios (DECISIONS #21); no Vue Router
+  (#12); no Inertia (#20); single `shows` Pinia store with transient input state
+  kept local (#11); minimal Blade shell / single mount (#22/#23).
+- Summaries rendered via text interpolation only — no `v-html` on API data
+  (confirmed by grep). Frontend calls only `/api/*`; no TVmaze reference in
+  `resources/`. Folder structure matches `ARCHITECTURE.md`.
+- No API or database contract involvement. Pinia is the first frontend
+  dependency, justified by #11 and the BUILD_PLAN Phase 3 scope.
+
+### Verification
+
+Commands actually run in this handoff:
+
+- `npm run build` → passed (77.05 kB / 30.22 kB gzip).
+- `php artisan test` → passed: 111 tests, 253 assertions (confirms no backend
+  regression; a temporary `config/services.php` edit used to force a 502 for the
+  error-state check was reverted — `git diff` on that file is empty).
+- Headless `curl`: app shell serves `<div id="app">` + `@vite`; `GET /api/shows`
+  → 200 with 100 shows (cap) and an `image_url` field.
+- `grep`: frontend uses one centralized `fetch` to `/api/*`; no `tvmaze`, no
+  `v-html` (safety comments only).
+
+Manual browser verification (developer-driven, against the running app at the
+Herd URL; main session forced a 502 by temporarily pointing the TVmaze base URL
+at a dead host, then reverted):
+
+- **Verified (manual):** initial list loads without a full-page reload; typing
+  searches automatically (debounced, single request after a pause); stale
+  responses are discarded (earlier requests observed cancelled, no stale flash);
+  empty state renders for a no-match query; **error state** renders the friendly
+  red alert on a forced 502 (`curl` confirmed the controlled `{"message": ...}`
+  body); responsive grid, missing-image placeholder, and lazy-loaded images;
+  summaries display as plain text.
+- **Verified (command):** production build passes.
+- **Not applicable (this phase):** automated frontend tests — Vitest is installed
+  in BUILD_PLAN Phase 5; no `npm run test` exists yet.
+
+Known limitations: the behavioral criteria are verified by **manual browser
+observation**, which is a point-in-time check, not an automated regression guard.
+No automated frontend tests exist until Phase 5.
+
+### AI workflow
+
+- Agents: `frontend-engineer` (Sonnet) — implementation.
+- Skills: `read-project-docs`, `implement-vue-feature`.
+- Commands: `/review-feature` (twice — first flagged a redundant clear-fetch, an
+  error-state empty grid, and minor duplication; all fixed and confirmed on
+  re-review), then `/feature-handoff` (this; an initial run correctly held the
+  phase at Incomplete pending behavioral evidence).
+- Human checkpoints: developer ran the app in the browser and confirmed all six
+  behavioral criteria (including the forced-502 error state), and directed the
+  show-detail-modal and genre-filter scope decisions (recorded in DECISIONS #24
+  and the new docs/BACKLOG.md, committed separately).
+
+### Follow-ups
+
+- Phase 5: add Vitest + Vue Test Utils coverage that automates these behaviors —
+  store (search/clear, loading/error/empty, stale-response discard, 100 cap),
+  `useDebounce` (fake timers), and component states (loading/empty/error,
+  placeholder, plain-text summary, clear button).
+
+Status justification: every Phase 3 acceptance criterion is Verified — the
+production build by command, and all behavioral criteria by explicitly performed
+manual browser verification (including the failure path via a forced 502). The
+only outstanding item is automated frontend test coverage, which BUILD_PLAN
+defers to Phase 5 and is recorded as an explicit follow-up; the Phase 3
+definition of done is satisfied — hence **Complete with follow-up** rather than
+**Complete**.
