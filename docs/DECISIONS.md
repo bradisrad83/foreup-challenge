@@ -175,3 +175,20 @@ the reason, and the tradeoff/consequence. These reflect *planning* intent.
   (#11) and "no Vue Router" (#12); avoids navigation overhead.
 - **Tradeoff:** No distinct URLs per mode; revisit alongside #12 if
   URL-addressable views are later required.
+
+## 24. Show details via a modal (not a page) — planned enhancement
+- **Decision:** When a fuller show view is added, present it as a **modal
+  dialog** (reusing the planned `components/shared/AppDialog.vue`), not as a
+  separate page. Target slot: **after BUILD_PLAN Phase 4**, so the core
+  search → favorites flow lands first. Not yet implemented.
+- **Reason:** Show cards intentionally truncate the summary; a detail view lets
+  the user read the full plain-text summary and all normalized fields. The data
+  is **already returned by `GET /api/shows`** (full `summary`, `genres`,
+  `rating`, `network`, `official_url`, `metadata`), so the modal needs **no new
+  backend endpoint and no extra TVmaze call** — it renders data the card already
+  holds. A modal (vs. a page) preserves "no Vue Router" (#12) and the one-screen,
+  state-driven model (#23); a detail *page* would violate both.
+- **Tradeoff:** Modal state is one more piece of transient UI to manage (kept
+  local per the state strategy, not in Pinia). No deep-link/URL for a specific
+  show — acceptable now; revisit with #12 only if URL-addressable detail is
+  later required. Summaries remain **plain text only** (no `v-html`).
