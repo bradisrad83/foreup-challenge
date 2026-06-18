@@ -65,3 +65,37 @@ will request approval for the commit and push.
 ## 8. Report
 Branch · commit hash · commit message · committed files · verification results ·
 push result · any remaining uncommitted changes.
+
+## 9. PR description (copy-paste-ready)
+`gh` is **not** installed, so the PR cannot be created or edited automatically.
+GitHub also only auto-fills a PR body from the commit message when the branch has
+**exactly one** commit ahead of base — so multi-commit branches open with an empty
+description. To save manual writing, **always** end with a ready-to-paste PR body.
+
+- Determine the base branch (default `main`) and list every commit on this branch
+  that is not on base, oldest first:
+  `git --no-pager log --reverse --format='- %s' origin/main..HEAD`
+  (fall back to `main..HEAD` if `origin/main` is unavailable).
+- Print the block below inside a single fenced ```` ```markdown ```` code block so
+  the user can copy it verbatim into the GitHub PR **description** field. Derive
+  the content only from the actual commits and diffs on the branch — never invent
+  scope.
+
+```markdown
+## Summary
+<1–3 sentences describing what this branch delivers and why.>
+
+## Changes
+<the `- <subject>` lines from the log command above; one per commit>
+
+## Verification
+<the real commands run and their actual results, e.g.
+`php artisan test` → 53 passed; `./vendor/bin/pint --test` → passed>
+
+## Notes
+<known follow-ups, deferred items, or "None">
+```
+
+- If only one commit is ahead of base, keep the block but it may be brief.
+- Do **not** add `Co-Authored-By` / AI attribution. Do **not** claim a
+  verification result that was not actually produced in this run.
