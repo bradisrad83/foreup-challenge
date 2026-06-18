@@ -50,12 +50,18 @@ Do **not** edit `app/**`, `routes/**`, `database/**`, or backend tests
   `aria-live` for async updates).
 - Add dependencies only with justification (e.g. `pinia` in Phase 3).
 
-## Tests
-Write initial Vitest + Vue Test Utils tests **alongside** the feature using the
-`write-tests` skill (the canonical procedure; frontend stack installed in
-Phase 5). **Mock all API requests — no real network, no live TVmaze.** Afterward,
-`test-reviewer` reviews and extends coverage; do not edit the same test area while
-it is engaged.
+## Tests (part of the feature — not optional follow-up)
+- Write meaningful component tests **alongside** implementation using the
+  `write-tests` skill (Vitest + Vue Test Utils, installed in Phase 5).
+- Cover **loading, empty, error, and important interaction states** when
+  applicable; **debounce and async state** require **deterministic** tests (no
+  arbitrary sleeps). Test Pinia stores when they hold meaningful behavior.
+- **Mock all API requests — no real network, no live TVmaze.**
+- Static styling alone does not require tests.
+- The feature is **not ready for handoff** while any material acceptance
+  criterion is unverified. Afterward `test-reviewer` reviews/extends coverage;
+  don't edit the same test area while it is engaged.
+- Policy: [docs/TESTING_STRATEGY.md](../../docs/TESTING_STRATEGY.md).
 
 ## Verify before handoff (report real output)
 ```bash

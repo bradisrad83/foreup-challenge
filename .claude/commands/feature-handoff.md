@@ -41,6 +41,17 @@ architecture/contract/DB alignment, tests & verification performed,
 documentation impact, and risks/remaining work. **Do not silently resolve** any
 documentation/source conflict — flag it to the developer.
 
+## 4b. Testing completion gate (before assigning final status)
+Require all of these before setting status (policy:
+[docs/TESTING_STRATEGY.md](../../docs/TESTING_STRATEGY.md)):
+1. An **acceptance-criteria → verification matrix** (criterion · test level ·
+   success path · failure/boundary path · Verified/Not verified/Not applicable).
+2. Actual test or manual-verification **evidence for every `Verified` item**.
+3. **Disclosure of every `Not verified` item.**
+4. Confirmation that tests **do not call the live TVmaze API**.
+5. Confirmation that the applicable **focused and broader suites passed** (real
+   command output).
+
 ## 5. Return a structured handoff (to the main session / developer)
 - **Feature**
 - **Build-plan phase**
@@ -55,10 +66,22 @@ documentation/source conflict — flag it to the developer.
 - **Suggested next step**
 - **Suggested commit message and file set**
 
-Never claim completion when tests fail or required behavior is missing — use
-**Incomplete** or **Blocked**. If deeper review is warranted, recommend the
-developer engage `architecture-advisor` (system-level design) or
-`security-quality-reviewer` (code-level); this command does **not** invoke them.
+### Status rules
+- **Complete** — only when every material acceptance criterion is **Verified**,
+  all applicable tests pass, no critical behavior is left unverified, and no
+  blocker or high-severity testing gap remains.
+- **Complete with follow-up** — only when all primary and material behavior is
+  **Verified**, remaining unverified items are non-critical and listed as
+  explicit follow-ups, and the build-plan definition of done is still satisfied.
+- **Incomplete** — required when a material acceptance criterion is **Not
+  verified**, meaningful tests are missing, required failure or persistence
+  behavior is untested, or applicable tests fail.
+- **Blocked** — required when verification cannot proceed because of an external
+  or environmental blocker.
+
+If deeper review is warranted, recommend the developer engage
+`architecture-advisor` (system-level design) or `security-quality-reviewer`
+(code-level); this command does **not** invoke them.
 
 ## 6. Log gate
 Continue to step 7 **only** when Status is **Complete** or **Complete with
@@ -71,6 +94,10 @@ follow-up**. Otherwise stop after the handoff.
   the template in that file.
 - Use **today's date**. Use the real commit hash if committed; otherwise
   `Pending` — **never invent a hash**.
+- The entry must record: **tests actually run and their real results**; each
+  acceptance criterion classified **Verified / Not verified / Not applicable**;
+  **missing coverage**; any **manual verification** performed; and **why** the
+  chosen completion status is justified.
 - Edit **only** `docs/IMPLEMENTATION_LOG.md`; do not touch application code or
   other documentation.
 

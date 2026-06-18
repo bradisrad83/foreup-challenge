@@ -52,11 +52,17 @@ and do **not** edit `.claude/agents/architecture-advisor.md`.
 - Do not expose upstream exception details to clients.
 - Add dependencies only with a stated justification.
 
-## Tests
-Write initial PHPUnit Feature/Unit tests **alongside** the feature using the
-`write-tests` skill (the canonical procedure). **Automated tests must never call
-the live TVmaze API — use `Http::fake()`.** Afterward, `test-reviewer` reviews
-and extends coverage; do not edit the same test area while it is engaged.
+## Tests (part of the feature — not optional follow-up)
+- Write meaningful tests **alongside** implementation using the `write-tests`
+  skill; tests are part of the feature, not later cleanup.
+- Prefer **Laravel feature tests** for API behavior (routes, status, validation,
+  JSON shape, persistence, sorting/limits, external failures); unit tests for
+  isolated logic (e.g. normalization).
+- **Automated tests must never call the live TVmaze API — use `Http::fake()`.**
+- The feature is **not ready for handoff** while any material acceptance
+  criterion is unverified. Afterward `test-reviewer` reviews/extends coverage;
+  don't edit the same test area while it is engaged.
+- Policy: [docs/TESTING_STRATEGY.md](../../docs/TESTING_STRATEGY.md).
 
 ## Verify before handoff (report real output)
 ```bash

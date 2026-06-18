@@ -32,6 +32,24 @@ accountability is maintained.
 - Generated dependencies are not installed silently; dependency changes are an
   explicit, reviewed step.
 
+## Testing-completion policy
+
+- Every behavioral change — new feature, API endpoint, validation rule,
+  persistence operation, external-integration behavior, or bug fix — must have
+  meaningful automated tests before it is **Complete**. TDD is optional; tests
+  may come before, during, or right after implementation, but they must exist
+  before feature handoff.
+- For each change, map the applicable acceptance criteria to a test, an
+  explicitly performed manual verification, or **Not applicable** (with a
+  reason). Non-runtime changes (docs, formatting, comments, pure styling,
+  generated files) are **Not applicable**, marked explicitly — never silently
+  skipped.
+- A feature must **not** be marked **Complete** while a material acceptance
+  criterion is **Not verified**. 100% coverage is not required; coverage is a
+  diagnostic signal, not a substitute for behavioral test quality.
+- The canonical policy is **[docs/TESTING_STRATEGY.md](TESTING_STRATEGY.md)**;
+  the `write-tests` skill is the procedure.
+
 ## Phase record template
 
 Record each AI-assisted phase using this template (append entries below as work
