@@ -27,6 +27,20 @@ TVmaze:
 Vue frontend  ->  Laravel internal API  ->  TVmaze API
 ```
 
+### Architecture summary (planned)
+
+- **Laravel JSON API** under `/api/*` owns validation, persistence, TVmaze
+  communication, normalization, caching, and controlled errors.
+- **Minimal Blade shell** at `/` loads the built assets and hosts a single mount
+  point.
+- **Vue 3 client application** (Composition API, plain JS) mounts once into that
+  shell — a standalone SPA, **not** an Inertia app.
+- **Pinia** is *planned* for genuinely shared state (search + favorite lists);
+  it is not installed yet.
+- **No Vue Router initially** — browse and favorites are state-driven modes on
+  one screen.
+- The JSON API boundary keeps the frontend portable to a future Symfony backend.
+
 ## Current implementation status
 
 | Area | Status |
@@ -42,8 +56,11 @@ Vue frontend  ->  Laravel internal API  ->  TVmaze API
 
 ## Selected stack
 
-- Laravel 13 (PHP 8.4)
-- Vue 3 (Composition API) — plain JavaScript, **no TypeScript**
+- Laravel 13 (PHP 8.4) — JSON API + minimal Blade shell
+- Vue 3 (Composition API) — plain JavaScript, **no TypeScript**; standalone SPA
+  (no Inertia, no Vue Router initially)
+- Pinia for shared frontend state *(planned; not yet installed)*
+- Native `fetch` + `AbortController` for API calls (no Axios)
 - Vite, Tailwind CSS 4
 - SQLite
 - Laravel HTTP client (for TVmaze)

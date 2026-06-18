@@ -32,8 +32,9 @@ full-page reloads.
 - A Laravel internal API that proxies and **normalizes** TVmaze responses.
 - HTML stripping of TVmaze summaries into plain text.
 - SQLite persistence for favorite lists and favorites (snapshot of show data).
-- A Vue 3 (Composition API) single-page interface using composables and local
-  state.
+- A Vue 3 (Composition API) single-page interface: local component state for
+  isolated concerns, composables for reusable behavior, and Pinia for shared
+  application state.
 - Short-lived caching of successful normalized TVmaze results.
 - Backend tests (PHPUnit) and frontend tests (Vitest + Vue Test Utils).
 - Responsive, reasonably accessible UI with Tailwind CSS 4.
@@ -43,7 +44,7 @@ full-page reloads.
 - Authentication / authorization (assumed handled by a parent application).
 - Vue directly calling TVmaze (Laravel is the only TVmaze caller).
 - Pagination / infinite scroll (results capped at 100 — see API contract).
-- TypeScript, Pinia, Vue Router, Docker.
+- TypeScript, Vue Router, Docker. (Pinia is in scope for shared state.)
 - User accounts, sharing lists between users, real-time updates.
 - A globally shared/normalized `shows` table (favorites store snapshots).
 

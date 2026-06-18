@@ -26,20 +26,29 @@ Do **not**:
 - Introduce authentication (assume a parent application provides it).
 - Add Symfony during the initial implementation.
 - Add Docker unless explicitly requested.
-- Introduce Pinia or Vue Router unless the architecture clearly requires them
-  **and** the developer approves.
+- Add **Inertia**.
+- Add **Vue Router** unless explicitly approved after a real requirement appears.
 
 ## Architecture
 
-- Vue calls **only** Laravel internal endpoints; Vue must **never** call TVmaze
-  directly.
+- **Frontend shape:** a standalone Vue 3 SPA mounted once
+  (`resources/js/app.js`) into a minimal Blade shell at `/`. **Not Inertia.**
+  Browse and favorites are state-driven modes on one screen (no Vue Router).
+- Vue talks to Laravel only through JSON endpoints under `/api/*`; Vue must
+  **never** call TVmaze directly.
+- Use native **`fetch`** (+ `AbortController`) via `services/api.js`; no Axios
+  initially.
+- **State:** Pinia is approved for genuinely shared state — two stores only
+  (`stores/shows.js`, `stores/favoriteLists.js`). Do not add more stores without
+  a concrete need. Keep transient UI state (dialogs, form input, visual state)
+  local to components.
 - Laravel owns all upstream TVmaze communication and response normalization.
 - TVmaze HTML summaries must be converted to **plain text** before reaching Vue.
 - Search results are capped at **100**.
 - Favorite records store **snapshots** of show data (not references to a shared
   shows table).
 - Keep the internal API **framework-neutral** so a Symfony backend could
-  implement the same contract later.
+  implement the same contract later (the SPA stays portable).
 - Follow [docs/API_CONTRACT.md](docs/API_CONTRACT.md),
   [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md), and
   [docs/DECISIONS.md](docs/DECISIONS.md).
@@ -119,7 +128,8 @@ enforced here.
 **Frontend (Vue)**
 
 - Use `<script setup>` and the Composition API.
-- Use composables for reusable stateful behavior.
+- Put shared state in Pinia stores; use composables for reusable helpers (e.g.
+  `useDebounce`), not as a substitute for the stores.
 - Keep components focused.
 - Use semantic HTML and accessible controls.
 - Do not render untrusted HTML.
