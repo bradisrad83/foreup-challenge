@@ -43,7 +43,7 @@ full-page reloads.
 - Authentication / authorization (assumed handled by a parent application).
 - Vue directly calling TVmaze (Laravel is the only TVmaze caller).
 - Pagination / infinite scroll (results capped at 100 — see API contract).
-- TypeScript, Pinia, Vue Router, Docker.
+- TypeScript, Vue Router, Docker. (Pinia is in scope for shared state.)
 - User accounts, sharing lists between users, real-time updates.
 - A globally shared/normalized `shows` table (favorites store snapshots).
 

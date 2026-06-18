@@ -29,12 +29,62 @@ stripping, and caching on the server.
 
 ## Vue responsibilities
 
-- Render the browse/search UI and the favorites UI.
-- Manage local UI state with the Composition API and composables.
-- Call the Laravel API via a thin `services/` fetch wrapper.
+- Render the browse/search UI and the favorites UI as a single client-side app.
+- Manage **shared** application state in Pinia stores; keep **transient**
+  component-specific UI state local (see "Frontend application shape").
+- Call the Laravel API via a thin `services/api.js` wrapper around native
+  `fetch`.
 - Debounce search input (~300 ms) and cancel stale requests with
   `AbortController`.
 - Present loading, empty, and error states; never call TVmaze directly.
+
+## Frontend application shape
+
+The frontend is a **standalone client-side Vue 3 application** mounted into a
+minimal Laravel Blade shell. It is **not** an Inertia application.
+
+- **Blade shell:** Laravel serves one minimal Blade page at `/`
+  (`resources/views/app.blade.php`) whose only job is to load the built assets
+  and provide a single mount point (`<div id="app">`).
+- **Single mount:** Vue mounts once via `resources/js/app.js`
+  (`createApp(App).mount('#app')`). All views are Vue components; navigation
+  between browse mode and favorite-list mode is **state-driven on one screen**,
+  not server- or route-driven.
+- **JSON API boundary:** Vue communicates with Laravel only through JSON
+  endpoints under `/api/*` (plain `fetch`). Vue never calls TVmaze directly, and
+  Laravel remains responsible for validation, persistence, TVmaze
+  communication, normalization, caching, and controlled error responses.
+- **No Inertia:** there is no server-driven page/prop bridge. The explicit JSON
+  API boundary is clearer to demonstrate and keeps the SPA portable to a future
+  Symfony backend. See [DECISIONS.md](DECISIONS.md).
+- **No Vue Router (initially):** one primary screen; browse vs. favorites is
+  represented by state. Routing can be added later if URL-addressable list views
+  become a requirement.
+- **HTTP client:** native `fetch` + `AbortController`, wrapped by
+  `services/api.js`. No Axios unless a concrete future requirement justifies it.
+
+### State: Pinia (shared) vs. local (transient)
+
+Pinia holds genuinely **shared** state that multiple components read or mutate
+and that must stay synchronized — search query/results/loading/error, favorite
+lists and their counts, the selected list and its details, and the results of
+add/remove/delete mutations (including count synchronization after a mutation).
+
+Two stores initially (do **not** create one giant global store):
+
+- `resources/js/stores/shows.js` — search query, results, loading/error state,
+  the initial unfiltered fetch, executing searches, clearing search, and
+  stale-response protection (`AbortController`). Debounce timing may live in a
+  small composable (`composables/useDebounce.js`) when that is clearer than
+  putting timing logic in the store.
+- `resources/js/stores/favoriteLists.js` — loading all lists, favorite counts,
+  selected list id, selected list details, creating/loading/deleting a list,
+  adding a show to one or more lists, removing a favorite, synchronizing counts
+  and selected-list state, and mutation/validation errors.
+
+Keep **local to components** (not in Pinia): dialog/confirmation-dialog
+visibility, temporary form input, which card opened a selector, purely visual
+state, and one-off UI/animation state.
 
 ## TVmaze integration boundary
 
@@ -107,11 +157,34 @@ routes/
 
 ```text
 resources/js/
-  components/             # grid, cards, list management, modals
-  composables/            # useShows, useSearch, useFavoriteLists, ...
-  services/               # api.js — thin fetch wrapper around /api
-  App.vue
-  app.js
+├── components/
+│   ├── layout/
+│   │   ├── AppHeader.vue
+│   │   └── FavoriteListSidebar.vue
+│   ├── shows/
+│   │   ├── SearchInput.vue
+│   │   ├── ShowGrid.vue
+│   │   ├── ShowCard.vue
+│   │   └── ShowCardSkeleton.vue
+│   ├── favorites/
+│   │   ├── FavoriteListForm.vue
+│   │   ├── FavoriteListDetails.vue
+│   │   ├── FavoriteListSelector.vue
+│   │   └── RemoveFavoriteButton.vue
+│   └── shared/
+│       ├── AppDialog.vue
+│       ├── ConfirmDialog.vue
+│       ├── EmptyState.vue
+│       └── ErrorAlert.vue
+├── stores/                # Pinia: shows.js, favoriteLists.js
+│   ├── shows.js
+│   └── favoriteLists.js
+├── services/              # api.js — fetch wrapper around /api
+│   └── api.js
+├── composables/           # useDebounce.js (transient/reusable helpers)
+│   └── useDebounce.js
+├── App.vue
+└── app.js
 ```
 
 ## Why this stays compatible with a future Symfony backend

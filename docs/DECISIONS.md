@@ -64,17 +64,28 @@ the reason, and the tradeoff/consequence. These reflect *planning* intent.
 - **Reason:** PHP/Node/SQLite run directly; fewer moving parts for review.
 - **Tradeoff:** Relies on local toolchain versions; documented in the README.
 
-## 11. Composables instead of Pinia (initially)
-- **Decision:** Manage state with Composition API composables and local state.
-- **Reason:** The app's state (search results, lists) is modest; composables
-  cover it without an extra dependency.
-- **Tradeoff:** No centralized devtools/time-travel; can adopt Pinia later if
-  state grows.
+## 11. Pinia for shared application state
+- **Decision:** Use Pinia for state shared across components, in two stores
+  (`stores/shows.js`, `stores/favoriteLists.js`). Keep transient
+  component-specific UI state local. (Supersedes the earlier
+  "composables instead of Pinia" plan.)
+- **Reason:** State is genuinely shared and must stay synchronized across the
+  UI — search query/results/loading/error, favorite lists and counts, the
+  selected list and its details, and add/remove/delete mutations with count
+  synchronization. Pinia gives one clear owner per concern and predictable
+  cross-component updates, which is hard to keep tidy with ad-hoc composables
+  and prop passing.
+- **Tradeoff:** Adds one dependency (`pinia`). Mitigated by limiting it to two
+  focused stores; transient UI state stays local, and composables are still used
+  for reusable helpers (e.g. `useDebounce`).
 
 ## 12. No Vue Router (initially)
-- **Decision:** Single view with section/tab switching via local state.
-- **Reason:** The UI is effectively one page; routing adds setup without need.
-- **Tradeoff:** No deep-linkable URLs for sub-views; acceptable for the scope.
+- **Decision:** One primary screen; browse mode and favorite-list mode are
+  represented by state, not routes.
+- **Reason:** There is a single screen and no deep-linking requirement, so
+  routing would add setup without solving a need.
+- **Tradeoff:** No URL-addressable sub-views; acceptable now and can be added
+  later if URL-addressable list views become a requirement.
 
 ## 13. No dual Laravel/Symfony backend (initially)
 - **Decision:** Implement one backend (Laravel) now.
@@ -126,3 +137,41 @@ the reason, and the tradeoff/consequence. These reflect *planning* intent.
 - **Reason:** Distinguishes upstream failure from client error; lets the UI show
   a clear retry message.
 - **Tradeoff:** Requires explicit upstream error handling; small and worth it.
+
+## 20. No Inertia
+- **Decision:** The frontend is a standalone client-side Vue SPA talking to a
+  JSON API; do not use Inertia.
+- **Reason:** The challenge emphasizes a frontend calling custom backend
+  endpoints, so an explicit JSON API boundary is clearer to demonstrate and
+  keeps the Vue app portable to a future Symfony backend. There is no
+  multi-page, server-driven navigation requirement.
+- **Tradeoff:** We forgo Inertia's automatic page/prop wiring and manage fetches
+  ourselves. Inertia is a valid tool, but it would add an architectural layer
+  without solving a current requirement here.
+
+## 21. Native `fetch` rather than Axios
+- **Decision:** Use the browser's native `fetch` (with `AbortController`),
+  wrapped by `services/api.js`. No Axios initially.
+- **Reason:** No extra dependency; `fetch` supports abort signals and is
+  sufficient for the small number of JSON endpoints; keeps the frontend
+  lightweight.
+- **Tradeoff:** Some conveniences (interceptors, automatic JSON) are written by
+  hand in the wrapper. Axios can be revisited if a concrete future requirement
+  justifies it.
+
+## 22. Minimal Blade application shell
+- **Decision:** Laravel serves one minimal Blade page at `/`
+  (`resources/views/app.blade.php`) that loads the built assets and provides a
+  single `<div id="app">`; Vue mounts once via `resources/js/app.js`.
+- **Reason:** Gives Vite/Blade asset handling and a single mount point without
+  adopting Inertia or server-driven views; the SPA owns all rendering.
+- **Tradeoff:** Initial render waits for the JS bundle (no SSR); acceptable for
+  this single-screen challenge.
+
+## 23. One-screen, state-driven UI
+- **Decision:** Present browse mode and favorite-list mode on one screen,
+  switching via application state rather than routes or separate pages.
+- **Reason:** Matches the single-screen scope and pairs naturally with Pinia
+  (#11) and "no Vue Router" (#12); avoids navigation overhead.
+- **Tradeoff:** No distinct URLs per mode; revisit alongside #12 if
+  URL-addressable views are later required.

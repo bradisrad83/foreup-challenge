@@ -86,3 +86,27 @@ This policy exists to control token and cost usage without sacrificing quality.
 > Entries are added as phases are completed. The scaffold and this planning step
 > were AI-assisted and developer-reviewed; detailed per-phase entries begin with
 > implementation.
+
+### Frontend architecture clarification (approved)
+
+- **Goal:** Make the frontend architecture explicit before implementation.
+- **Model used:** Opus.
+- **Reason for model choice:** A cross-cutting architecture clarification
+  affecting several documents and future phases — the kind of high-level
+  judgment reserved for Opus per `CLAUDE.md` → "Model usage".
+- **Decision:** Standalone Vue 3 SPA in a minimal Blade shell talking to the
+  Laravel JSON API — **not** Inertia. **Pinia** is adopted for genuinely shared
+  state (two stores: `shows`, `favoriteLists`); transient UI state stays local.
+  Native `fetch` + `AbortController` (no Axios). **No Vue Router** initially;
+  browse/favorites are state-driven modes on one screen. This supersedes the
+  earlier "composables instead of Pinia" plan. Rationale: the challenge
+  emphasizes a frontend calling custom endpoints, and an explicit JSON API
+  boundary is clearer to demonstrate and keeps the app portable to a future
+  Symfony backend.
+- **Documents updated:** `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`,
+  `docs/BUILD_PLAN.md`, `CLAUDE.md`, `docs/AI_WORKFLOW.md`, `README.md`.
+- **Commands run:** none (documentation only).
+- **No application code, dependencies, or contracts changed** (Pinia is
+  documented as planned, not installed). API endpoints, DB schema, duplicate
+  handling, normalization, cache TTL, backend testing framework, and the
+  seven-phase sequence are unchanged.
