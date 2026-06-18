@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'tvmaze' => [
+        'base_url' => env('TVMAZE_BASE_URL', 'https://api.tvmaze.com'),
+        'timeout' => (int) env('TVMAZE_TIMEOUT', 10),
+    ],
+
 ];
