@@ -1,58 +1,120 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# foreUP Coding Challenge — TV Shows & Favorites
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A small Laravel + Vue application for browsing television shows (via the TVmaze
+API) and organizing them into favorite lists.
 
-## About Laravel
+> **Status: planning + scaffold only.** The base Laravel 13 / Vue 3 application
+> has been scaffolded and committed. **Application features are not implemented
+> yet.** TVmaze integration, search, and favorite lists are *planned* and
+> documented under [`docs/`](docs/) — none of them work today.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Coding-challenge overview
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+The finished application will let a user:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Browse an initial unfiltered list of TV shows.
+- Search shows as they type (results in a responsive grid).
+- Create multiple favorite lists and save shows to one or more of them.
+- View lists alphabetically with a count of saved shows.
+- View a list's favorites ordered by most recently modified, and remove
+  individual favorites or delete whole lists.
 
-## Learning Laravel
+All interactions happen through JavaScript without full-page reloads. The Vue
+frontend talks only to the Laravel API; **Laravel** is the only thing that calls
+TVmaze:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```text
+Vue frontend  ->  Laravel internal API  ->  TVmaze API
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Current implementation status
 
-## Contributing
+| Area | Status |
+| --- | --- |
+| Laravel 13 + Vue 3 scaffold | ✅ Done |
+| Vite + Tailwind CSS 4 + SQLite | ✅ Configured |
+| Planning & architecture docs | ✅ This step |
+| TVmaze backend integration | ⬜ Planned |
+| Favorites database & API | ⬜ Planned |
+| Vue search UI | ⬜ Planned |
+| Vue favorites UI | ⬜ Planned |
+| Backend & frontend tests | ⬜ Planned |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Selected stack
 
-## Code of Conduct
+- Laravel 13 (PHP 8.4)
+- Vue 3 (Composition API) — plain JavaScript, **no TypeScript**
+- Vite, Tailwind CSS 4
+- SQLite
+- Laravel HTTP client (for TVmaze)
+- PHPUnit (ships with Laravel 13) for backend tests
+- Vitest + Vue Test Utils for frontend tests *(planned; not yet installed)*
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+There is no authentication — assume a larger parent application would provide it.
 
-## Security Vulnerabilities
+## Local setup
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+# 1. PHP dependencies
+composer install
 
-## License
+# 2. JS dependencies
+npm install
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# 3. Environment file + app key (skip if .env already exists)
+cp .env.example .env
+php artisan key:generate
+
+# 4. SQLite database + schema
+touch database/database.sqlite      # already present after scaffold
+php artisan migrate
+```
+
+The project is configured for SQLite (`DB_CONNECTION=sqlite`) using
+`database/database.sqlite`.
+
+## Development commands
+
+```bash
+php artisan serve     # Laravel backend at http://127.0.0.1:8000
+npm run dev           # Vite dev server (HMR)
+```
+
+## Build command
+
+```bash
+npm run build         # Production frontend build (Vite)
+```
+
+## Test commands (that currently exist)
+
+```bash
+php artisan test      # Backend tests via PHPUnit (default scaffold tests only)
+# or:
+./vendor/bin/phpunit
+```
+
+> Frontend tests (Vitest) are **not installed yet**; an `npm test` script will be
+> added in the testing phase. Only the default Laravel example tests exist today.
+
+## Documentation
+
+| Document | Purpose |
+| --- | --- |
+| [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) | Scope, phased plan, definition of done, risks |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Planned architecture and folder structure |
+| [docs/API_CONTRACT.md](docs/API_CONTRACT.md) | Planned internal Laravel API |
+| [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) | Planned SQLite schema |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture decision records |
+| [docs/AI_WORKFLOW.md](docs/AI_WORKFLOW.md) | AI-assisted development process |
+
+## AI-assistance disclosure
+
+This project is developed with AI assistance (Claude Code) for planning,
+scaffolding, implementation suggestions, review, and documentation. All
+AI-generated changes are reviewed by the developer, and all commands and tests
+are actually run before being relied upon. See
+[docs/AI_WORKFLOW.md](docs/AI_WORKFLOW.md) for details.
+
+> This README is intentionally concise and will be expanded near project
+> completion.
