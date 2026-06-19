@@ -386,3 +386,128 @@ only outstanding item is automated frontend test coverage, which BUILD_PLAN
 defers to Phase 5 and is recorded as an explicit follow-up; the Phase 3
 definition of done is satisfied — hence **Complete with follow-up** rather than
 **Complete**.
+
+---
+
+## 2026-06-19 — Vue favorites interface
+
+**Build-plan phase:** Phase 4 — Vue favorites interface
+**Status:** Complete with follow-up
+**Commit:** Pending
+
+### Summary
+
+Adds the favorites UI to the Phase 3 SPA, consuming the Phase 2 favorite-list
+API. A second (and final) `favoriteLists` Pinia store owns the list index,
+counts, the selected list and its favorites, and create/add/remove/delete
+mutations. The screen is a state-driven Browse / My Lists tab swap (full-width
+grid in Browse; full-width lists view in My Lists). My Lists shows lists as pills
+with counts + an inline create form, and a selected-list detail (favorites in
+`updated_at` desc order, remove buttons, delete-with-confirm). Each show card has
+a heart that opens an add-to-list dialog: it saves to one or more lists with one
+POST per list, reports a per-list outcome (including 409 duplicates), and can
+create a new list inline (auto-selecting it). `services/api.js` was extended with
+the six favorite endpoints and sends a CSRF token on mutating requests; the Blade
+shell exposes the token via a meta tag.
+
+### Key files
+
+- `resources/js/stores/favoriteLists.js`
+- `resources/js/services/api.js` (favorite endpoints + CSRF on mutations)
+- `resources/js/App.vue`, `resources/js/components/layout/AppHeader.vue`,
+  `resources/js/components/layout/FavoritesPanel.vue`
+- `resources/js/components/favorites/{FavoriteListForm,FavoriteListDetails,FavoriteListSelector,RemoveFavoriteButton}.vue`
+- `resources/js/components/shared/{AppDialog,ConfirmDialog}.vue`
+- `resources/js/components/shows/ShowCard.vue`, `resources/views/app.blade.php`
+
+### Decisions and alignment
+
+- Two Pinia stores only — `shows` + `favoriteLists` (DECISIONS #11).
+- Saving to multiple lists issues one POST per selected list via `Promise.all`,
+  with per-list 409 handling and no batch endpoint (DECISIONS #16).
+- 422 duplicate-name surfaced inline; CSRF token sent on mutations (Laravel's
+  `/api` group is stateless and does not enforce CSRF, so this is defensive).
+- No Vue Router / no Inertia; browse vs. favorites is state-driven on one screen
+  (#12/#20/#23). Summaries/names rendered as text — no `v-html`. Reuses
+  `services/api.js`; transient UI state kept local to components.
+- No backend, API-contract, or database changes this phase.
+- Layout note: the initial two-column (right sidebar) layout was replaced, on
+  developer preference, with a full-width Browse / My Lists tab layout. A
+  multi-root `v-show` bug (the grid stayed visible behind My Lists) was found via
+  a developer screenshot and fixed by wrapping the grid in a single element.
+
+### Verification
+
+Commands actually run in this handoff:
+
+- `npm run build` → passed (113.96 kB / 40.73 kB gzip).
+- `php artisan test` → passed: 111 tests, 253 assertions (no backend regression;
+  the favorites API the UI consumes is green).
+- Live API walkthrough via `curl` against the running app (with cleanup of the
+  test data) confirmed the contract end-to-end: create 201 → case-insensitive
+  duplicate 422 with `errors.name` → add favorite 201 → duplicate favorite 409 →
+  get list with synced count 200 → remove 204 → delete 204 → list index 200.
+- `grep`: frontend calls only `/api/*`; no `tvmaze`, no `v-html`, no debug
+  statements. No frontend automated tests exist yet (Vitest is Phase 5), so none
+  call the live service.
+
+Manual browser verification performed by the developer against the running app
+(reported "all good" to an explicit 7-point checklist):
+
+- **Verified (manual):** lists display alphabetically with counts; a
+  case-insensitive duplicate name shows the inline 422 message with no reload;
+  selecting a list shows its favorites most-recently-modified first; saving a
+  show to multiple lists at once reports per-list outcomes including a 409
+  "already in" for a duplicate; the inline "create a list" path in the add dialog
+  creates and auto-selects the list (and opens directly when there are no lists);
+  removing a favorite updates the UI and decrements the count without a reload;
+  deleting a list goes through the confirmation dialog and returns to the index;
+  no full-page reloads occur.
+- **Verified (command/API):** the favorites endpoints (status codes, shapes,
+  ordering, counts, cascade) via the live curl walk and the backend suite.
+- **Verified (build):** production build passes.
+- **Not applicable (this phase):** automated frontend tests — Vitest is installed
+  in BUILD_PLAN Phase 5; no `npm run test` exists yet.
+
+Known limitations / non-blocking findings (from `/review-feature`): dialog
+initial focus lands on the close button and the inline-create input may not
+autofocus on the empty state (minor a11y); no body-scroll lock while a modal is
+open; one `FavoriteListSelector`/`AppDialog` instance mounts per show card (~100
+— fine at the 100-cap scale, but an app-level dialog would be leaner); an unused
+`selectedListCount` getter remains in the store. The behavioral criteria are
+confirmed by manual browser verification, not automated tests (point-in-time, not
+a regression guard).
+
+### AI workflow
+
+- Agents: `frontend-engineer` (Sonnet) — implementation.
+- Skills: `read-project-docs`, `implement-vue-feature`.
+- Commands: `/review-feature` (findings: manual-verification gap, dialog focus +
+  body-scroll-lock polish, unused getter), then `/feature-handoff` (this; an
+  initial run correctly held the phase at Incomplete pending behavioral evidence).
+- Human checkpoints: developer chose the Tabs layout over the sidebar, caught the
+  multi-root `v-show` bug via a screenshot, directed the inline-create
+  enhancement (and backlogged a favorited-indicator and a favorites grid),
+  migrated the dev database, and ran the 7-point browser verification.
+
+### Follow-ups
+
+- Phase 5: Vitest + Vue Test Utils coverage for the `favoriteLists` store
+  (create/add/remove/delete, count sync, per-list 409, stale-response guard) and
+  components (selector incl. inline create, dialog focus/Escape, delete confirm),
+  plus a regression test that the grid is hidden when My Lists is active.
+- Minor polish (non-blocking): dialog initial-focus / body-scroll-lock; remove
+  the unused `selectedListCount` getter; consider an app-level add-to-list dialog
+  instead of one per card.
+- Backlog (separate): favorited indicator on cards (needs a small
+  `GET /api/favorites/ids` endpoint + contract update); favorites detail as a
+  responsive grid (Phase 6).
+
+Status justification: every material Phase 4 acceptance criterion is Verified —
+the production build by command, the favorites API by the backend suite and a
+live curl walk, and all UI behaviors (create, duplicate-422, ordering, multi-list
+add with per-list 409, inline create, remove, delete-with-confirm, no reloads) by
+explicitly performed manual browser verification. The only outstanding work is
+automated frontend test coverage, which BUILD_PLAN defers to Phase 5 and which is
+recorded as an explicit follow-up; the Phase 4 definition of done is satisfied —
+hence **Complete with follow-up** rather than **Complete**.
