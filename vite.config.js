@@ -3,7 +3,6 @@ import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
-import vueDevTools from 'vite-plugin-vue-devtools';
 
 export default defineConfig({
     plugins: [
@@ -17,7 +16,6 @@ export default defineConfig({
             ],
         }),
         vue(),
-        vueDevTools(),
         tailwindcss(),
     ],
     server: {
