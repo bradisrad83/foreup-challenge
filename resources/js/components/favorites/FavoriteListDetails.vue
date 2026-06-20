@@ -201,10 +201,16 @@ async function confirmDelete() {
             {{ (list.favorites_count ?? (list.favorites ? list.favorites.length : 0)) === 1 ? 'show' : 'shows' }}
         </p>
 
-        <!-- Accessible live region for async state -->
+        <!-- Accessible live region for async state and content updates -->
         <div aria-live="polite" aria-atomic="true" class="sr-only">
             <span v-if="loading">Loading list details…</span>
             <span v-else-if="error">Error: {{ error }}</span>
+            <span v-else-if="list && (!list.favorites || list.favorites.length === 0)">
+                No shows in this list yet.
+            </span>
+            <span v-else-if="list && list.favorites && list.favorites.length">
+                {{ list.favorites.length }} show{{ list.favorites.length === 1 ? '' : 's' }} in this list.
+            </span>
         </div>
 
         <!-- Delete confirmation dialog -->

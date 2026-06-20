@@ -5,8 +5,13 @@
  * Accessibility:
  * - role="dialog" + aria-modal="true" + aria-labelledby pointing at the title slot
  * - Escape key closes the dialog
- * - Focus is trapped inside while open (first focusable element on open)
+ * - Focus is trapped inside while open
+ * - Initial focus lands on the first meaningful content element (input, primary
+ *   action) inside the slot, falling back to the dialog panel itself — NOT the
+ *   close button (which would be useless as a landing target)
  * - Backdrop click closes the dialog
+ * - Body scroll is locked while the dialog is open
+ * - Focus is restored to the trigger element on close
  *
  * Usage:
  *   <AppDialog :open="isOpen" title="My Dialog" @close="isOpen = false">
@@ -35,20 +40,25 @@ function close() {
     emit('close');
 }
 
+/** Return all focusable (non-disabled) elements inside the dialog. */
+function getFocusable() {
+    if (!dialogRef.value) return [];
+    return Array.from(
+        dialogRef.value.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+    ).filter((el) => !el.disabled);
+}
+
 function onKeydown(event) {
     if (event.key === 'Escape') {
         event.preventDefault();
         close();
     }
 
-    // Basic focus trap: prevent Tab from leaving the dialog
+    // Focus trap: prevent Tab from leaving the dialog
     if (event.key === 'Tab' && dialogRef.value) {
-        const focusable = Array.from(
-            dialogRef.value.querySelectorAll(
-                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-            ),
-        ).filter((el) => !el.disabled);
-
+        const focusable = getFocusable();
         if (!focusable.length) return;
 
         const first = focusable[0];
@@ -68,6 +78,16 @@ function onKeydown(event) {
     }
 }
 
+/** Lock body scroll while the dialog is open. */
+function lockBodyScroll() {
+    document.body.style.overflow = 'hidden';
+}
+
+/** Restore body scroll (called on close and unmount). */
+function unlockBodyScroll() {
+    document.body.style.overflow = '';
+}
+
 // Keep track of the element that triggered the dialog so we can restore focus
 let previousFocus = null;
 
@@ -76,17 +96,34 @@ watch(
     async (isOpen) => {
         if (isOpen) {
             previousFocus = document.activeElement;
+            lockBodyScroll();
             document.addEventListener('keydown', onKeydown);
-            // Focus the first focusable element inside the dialog
+
             await nextTick();
+
             if (dialogRef.value) {
-                const first = dialogRef.value.querySelector(
-                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-                );
-                if (first) first.focus();
+                // Focus the first meaningful content element — look inside the
+                // slot content area first (skipping the close button in the header).
+                // The dialog panel itself carries tabindex="-1" as a fallback.
+                const contentArea = dialogRef.value.querySelector('.dialog-content');
+                const contentFocusable = contentArea
+                    ? Array.from(
+                          contentArea.querySelectorAll(
+                              'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+                          ),
+                      ).filter((el) => !el.disabled)
+                    : [];
+
+                if (contentFocusable.length > 0) {
+                    contentFocusable[0].focus();
+                } else {
+                    // Fall back to the dialog panel itself (tabindex="-1")
+                    dialogRef.value.focus();
+                }
             }
         } else {
             document.removeEventListener('keydown', onKeydown);
+            unlockBodyScroll();
             // Restore focus to the element that opened the dialog
             if (previousFocus && typeof previousFocus.focus === 'function') {
                 previousFocus.focus();
@@ -98,6 +135,7 @@ watch(
 
 onUnmounted(() => {
     document.removeEventListener('keydown', onKeydown);
+    unlockBodyScroll();
 });
 </script>
 
@@ -123,13 +161,15 @@ onUnmounted(() => {
                     @click="close"
                 />
 
-                <!-- Dialog panel -->
+                <!-- Dialog panel. tabindex="-1" lets it receive programmatic focus
+                     as a fallback when the slot content has no focusable elements. -->
                 <div
                     ref="dialogRef"
                     role="dialog"
                     aria-modal="true"
                     :aria-labelledby="titleId"
-                    class="relative z-10 w-full max-w-md rounded-xl bg-white shadow-xl"
+                    tabindex="-1"
+                    class="relative z-10 w-full max-w-md rounded-xl bg-white shadow-xl focus:outline-none"
                 >
                     <!-- Header -->
                     <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
@@ -160,8 +200,10 @@ onUnmounted(() => {
                         </button>
                     </div>
 
-                    <!-- Content slot -->
-                    <div class="px-5 py-4">
+                    <!-- Content slot. The `dialog-content` class is used by the
+                         focus logic above to locate the first meaningful target
+                         and skip the close button in the header. -->
+                    <div class="dialog-content px-5 py-4">
                         <slot />
                     </div>
                 </div>

@@ -146,4 +146,103 @@ describe('AppDialog component', () => {
 
         removeSpy.mockRestore();
     });
+
+    // Phase 6: body-scroll lock
+    it('locks body scroll (overflow:hidden) when the dialog opens', async () => {
+        const parent = mount({
+            template: `<AppDialog :open="open" title="Test" @close="open = false" />`,
+            components: { AppDialog },
+            data() { return { open: false }; },
+        }, { attachTo: document.body });
+
+        expect(document.body.style.overflow).not.toBe('hidden');
+
+        parent.vm.open = true;
+        await parent.vm.$nextTick();
+        await parent.vm.$nextTick();
+
+        expect(document.body.style.overflow).toBe('hidden');
+
+        parent.unmount();
+    });
+
+    it('restores body scroll when the dialog closes', async () => {
+        // Start closed so the watcher fires on the false → true transition,
+        // which triggers lockBodyScroll. Then close and verify unlock.
+        const parent = mount({
+            template: `<AppDialog :open="open" title="Test" @close="open = false" />`,
+            components: { AppDialog },
+            data() { return { open: false }; },
+        }, { attachTo: document.body });
+
+        parent.vm.open = true;
+        await parent.vm.$nextTick();
+        await parent.vm.$nextTick();
+        expect(document.body.style.overflow).toBe('hidden');
+
+        parent.vm.open = false;
+        await parent.vm.$nextTick();
+
+        expect(document.body.style.overflow).toBe('');
+
+        parent.unmount();
+    });
+
+    it('restores body scroll after unmount (no scroll-lock leak)', () => {
+        const wrapper = mountDialog({ open: true });
+        // Manually set overflow as the watcher-triggered lock would in real use
+        document.body.style.overflow = 'hidden';
+
+        wrapper.unmount();
+
+        expect(document.body.style.overflow).toBe('');
+    });
+
+    // Phase 6: initial focus lands on slot content, not the close button
+    it('focuses the first focusable element in slot content, not the close button', async () => {
+        const parent = mount({
+            template: `
+                <AppDialog :open="open" title="Test">
+                    <input data-testid="first-input" type="text" />
+                </AppDialog>
+            `,
+            components: { AppDialog },
+            data() { return { open: false }; },
+        }, { attachTo: document.body });
+
+        parent.vm.open = true;
+        await parent.vm.$nextTick();
+        await parent.vm.$nextTick();
+
+        const focused = document.activeElement;
+        // Should be the input inside the slot, not the close button
+        expect(focused).not.toBeNull();
+        expect(focused.tagName).toBe('INPUT');
+        expect(focused.dataset.testid).toBe('first-input');
+
+        parent.unmount();
+    });
+
+    it('focuses the dialog panel itself when the slot has no focusable elements', async () => {
+        const parent = mount({
+            template: `
+                <AppDialog :open="open" title="Test">
+                    <p>Some non-interactive text content.</p>
+                </AppDialog>
+            `,
+            components: { AppDialog },
+            data() { return { open: false }; },
+        }, { attachTo: document.body });
+
+        parent.vm.open = true;
+        await parent.vm.$nextTick();
+        await parent.vm.$nextTick();
+
+        const focused = document.activeElement;
+        // Should be the dialog panel element (tabindex="-1")
+        expect(focused).not.toBeNull();
+        expect(focused.getAttribute('role')).toBe('dialog');
+
+        parent.unmount();
+    });
 });
