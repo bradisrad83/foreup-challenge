@@ -511,3 +511,112 @@ explicitly performed manual browser verification. The only outstanding work is
 automated frontend test coverage, which BUILD_PLAN defers to Phase 5 and which is
 recorded as an explicit follow-up; the Phase 4 definition of done is satisfied —
 hence **Complete with follow-up** rather than **Complete**.
+
+---
+
+## 2026-06-20 — Frontend testing (Vitest + Vue Test Utils)
+
+**Build-plan phase:** Phase 5 — Frontend testing
+**Status:** Complete with follow-up
+**Commit:** Pending
+
+### Summary
+
+Adds the frontend test stack and automates the Phase 3 (search) and Phase 4
+(favorites) behavior that was previously verified only manually in the browser.
+Installs `vitest`, `@vue/test-utils`, and `jsdom` (dev dependencies) with a
+dedicated `vitest.config.js` (jsdom environment, Vue plugin only — kept separate
+from `vite.config.js` so the Laravel/Tailwind/devtools plugins are not loaded at
+test time). Adds `test` (`vitest run`) and `test:watch` scripts. 93 tests across
+the two Pinia stores, the `useDebounce` composable, and the key components. Pinia
+is reset per test (`setActivePinia(createPinia())`); every test mocks
+`services/api.js`, so no test makes a real network call or reaches TVmaze. No
+application/source files were changed.
+
+### Key files
+
+- `vitest.config.js`; `package.json` / `package-lock.json` (dev deps + scripts)
+- `resources/js/tests/stores/{shows,favoriteLists}.test.js`
+- `resources/js/tests/composables/useDebounce.test.js`
+- `resources/js/tests/components/{App,SearchInput,ShowGrid,ShowCard,FavoriteListForm,FavoriteListSelector,FavoriteListDetails,AppDialog}.test.js`
+
+### Decisions and alignment
+
+- Plain JavaScript, no TypeScript tooling (DECISIONS #3); Vitest + Vue Test Utils
+  (DECISIONS #17); Pinia reset per test (DECISIONS #11).
+- All API access mocked via `vi.mock('services/api.js')` — no live network, no
+  TVmaze. Teleport-rendered dialog content tested via `attachTo: document.body`
+  + `document.querySelector`, with `afterEach` body cleanup.
+- No backend, API-contract, or database changes.
+
+### Verification
+
+Commands actually run in this handoff:
+
+- `npm run test` → passed: 11 test files, 93 tests.
+- `npm run build` → passed (113.96 kB / 40.73 kB gzip).
+- `grep` over `resources/js/tests/` → no direct `fetch`; the API module is mocked
+  in every test that uses it (the two that do not — `AppDialog`, `useDebounce` —
+  make no API calls). No live TVmaze.
+- `php artisan test` not run this handoff — no backend changes (the PHP suite was
+  green at the Phase 4 handoff: 111 tests).
+
+Behavior coverage:
+
+- **Verified (automated):** `shows` store — initial/search fetch, query
+  forwarding, loading flag, error state, empty response, defensive 100-cap,
+  stale-response discard, `clearSearch`. `favoriteLists` store — fetch, create
+  (alphabetical insert + returns created object; 422 → `createErrors`), select
+  (+ stale guard), delete (+ deselect), `addToLists` (one call per list, count
+  increment, per-list 409, generic error), `removeFromList` (+ count decrement),
+  clear helpers. `useDebounce` — no immediate update, update after delay,
+  trailing-edge on rapid input, custom delay (fake timers). Components —
+  SearchInput clear behavior; ShowGrid loading/error/empty/results; ShowCard
+  plain-text name/summary, null-image placeholder, `loading="lazy"`, heart opens
+  selector; FavoriteListForm empty/valid/422; FavoriteListSelector reset-on-open,
+  save-disabled, per-list result icons, inline create (opens directly when no
+  lists; "Create & select" auto-selects); FavoriteListDetails loading/error/empty,
+  delete-confirm, remove; AppDialog role/aria-modal, Escape + backdrop close,
+  listener cleanup. Regression — App-level test asserts the ShowGrid wrapper is
+  `display:none` when My Lists is active (the multi-root `v-show` fix).
+- **Verified (command):** `npm run test` and `npm run build` pass; no TypeScript
+  tooling present.
+- **Not verified (automated):** `services/api.js` wrapper logic — query-param
+  filtering, the CSRF header on mutating methods, structured-error shaping, and
+  the `204 → null` path. It is mocked in every test, so its own branching is not
+  directly exercised (it was manually verified earlier via curl/browser and is
+  exercised indirectly through the store tests).
+
+Known limitations / non-blocking findings (from `/review-feature`): the
+`services/api.js` wrapper has no direct test (above); a dead variable in
+`App.test.js`; the stale-response test simulates the abort rather than asserting
+the store invokes `abort()`; a few thin/presentational components
+(`FavoritesPanel`, `AppHeader`, `ConfirmDialog`, `RemoveFavoriteButton`,
+`useDebounce` unmount cleanup) are covered indirectly rather than directly.
+
+### AI workflow
+
+- Agents: `frontend-engineer` (Sonnet) — installed the stack and wrote the tests.
+- Skills: `read-project-docs`, `write-tests`.
+- Commands: `/review-feature` (confirmed test quality/determinism; flagged the
+  `api.js` coverage gap and two minor cleanups; independently re-ran the suite),
+  then `/feature-handoff` (this).
+- Human checkpoints: developer chose `/review-feature` over the `test-reviewer`
+  agent for the test-quality gate, then ran handoff.
+
+### Follow-ups
+
+- Add `resources/js/tests/services/api.test.js` (mock global `fetch`) covering
+  param building, the CSRF header on POST/DELETE, error-object shaping on non-2xx,
+  and `204 → null`. A natural `test-reviewer` task; can land in Phase 6.
+- Minor test cleanups: remove the unused variable in `App.test.js`; strengthen
+  the stale-response test to assert the prior request's signal was aborted.
+
+Status justification: every Phase 5 acceptance criterion is Verified by an
+executed command (the frontend suite passes — 93 tests; the production build
+passes; no TypeScript tooling; no live TVmaze in tests), and the targeted Phase
+3/4 behaviors are now automated with deterministic, behavior-focused tests. The
+only outstanding item is direct coverage of the `services/api.js` wrapper, which
+is non-critical (mocked everywhere, exercised indirectly, manually verified
+earlier) and recorded as an explicit follow-up; the Phase 5 definition of done is
+satisfied — hence **Complete with follow-up** rather than **Complete**.
