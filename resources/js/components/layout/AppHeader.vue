@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { useFavoriteListsStore } from '../../stores/favoriteLists.js';
 import SearchInput from '../shows/SearchInput.vue';
 
-defineProps({
+const props = defineProps({
     // Which view is active: false = Browse (grid), true = My Lists.
     listsActive: {
         type: Boolean,
@@ -17,6 +17,18 @@ const favoriteListsStore = useFavoriteListsStore();
 
 // Total count of all lists — shown as a badge on the My Lists tab
 const listCount = computed(() => favoriteListsStore.lists.length);
+
+/**
+ * ARIA tablist keyboard navigation: Left/Right arrows move between tabs.
+ * This matches the WAI-ARIA tab pattern where arrow keys cycle through tabs.
+ */
+function onTablistKeydown(event) {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        // Toggle between the two tabs (Browse = false, My Lists = true)
+        emit('set-lists', !props.listsActive);
+    }
+}
 </script>
 
 <template>
@@ -55,6 +67,7 @@ const listCount = computed(() => favoriteListsStore.lists.length);
                         class="inline-flex shrink-0 rounded-lg border border-gray-300 bg-gray-100 p-0.5 text-sm font-medium"
                         role="tablist"
                         aria-label="Browse or My Lists"
+                        @keydown="onTablistKeydown"
                     >
                         <button
                             type="button"
