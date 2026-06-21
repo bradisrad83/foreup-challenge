@@ -6,10 +6,8 @@ lists.
 
 > **Status: complete.** The application is implemented and tested end to end —
 > TVmaze-backed search, favorite lists, and the single-screen Vue SPA all work.
-> Backend (PHPUnit) and frontend (Vitest) suites pass, the production build
-> succeeds, and Pint reports no style issues. See
-> [docs/IMPLEMENTATION_LOG.md](docs/IMPLEMENTATION_LOG.md) for the per-phase
-> verification record.
+> The backend (PHPUnit, 113 tests) and frontend (Vitest, 127 tests) suites pass,
+> the production build succeeds, and Pint reports no style issues.
 
 ## What it does
 
@@ -84,6 +82,15 @@ Full request/response shapes: [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
 There is no authentication — by design, a larger parent application is assumed to
 provide it.
 
+## Requirements
+
+- **PHP 8.3+** (developed on 8.4) with the usual Laravel extensions and the
+  SQLite (`pdo_sqlite`) extension
+- **Composer**
+- **Node.js 20+** (developed on 22) and **npm**
+
+No database server is needed — the app uses a local SQLite file.
+
 ## Local setup (from a clean clone)
 
 ```bash
@@ -114,13 +121,25 @@ The project is configured for SQLite (`DB_CONNECTION=sqlite`) using
 
 ## Running the app
 
+The frontend assets must be available before the page will render — either build
+them once or run the Vite dev server. Pick one of the two flows below.
+
+**Production-style (built assets):**
+
 ```bash
-php artisan serve     # Laravel backend at http://127.0.0.1:8000
-npm run dev           # Vite dev server (HMR) — for development
+npm run build         # build assets (step 5 above already does this)
+php artisan serve     # serve the app at http://127.0.0.1:8000
 ```
 
-Then open the Laravel URL. For a production-style run, `npm run build` and serve
-via Laravel alone.
+**Development (hot reload):** run both, in separate terminals.
+
+```bash
+php artisan serve     # Laravel backend at http://127.0.0.1:8000
+npm run dev           # Vite dev server (HMR)
+```
+
+Then open http://127.0.0.1:8000. (If you see a "Vite manifest not found" error,
+you have neither built the assets nor started `npm run dev` — do one of them.)
 
 ## Tests, build, and style
 
