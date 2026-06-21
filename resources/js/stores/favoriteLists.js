@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import {
     getFavoriteLists,
     createFavoriteList,
@@ -70,15 +70,8 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
     const favoritedIds = ref([]);
 
     // -------------------------------------------------------------------------
-    // Computed
+    // Computed / helpers
     // -------------------------------------------------------------------------
-
-    /** The count of the currently selected list (reactive, stays in sync). */
-    const selectedListCount = computed(() => {
-        if (selectedListId.value === null) return 0;
-        const match = lists.value.find((l) => l.id === selectedListId.value);
-        return match ? match.favorites_count : 0;
-    });
 
     /** Whether a show (by external_id) is saved in at least one list. */
     function isFavorited(externalId) {
@@ -319,7 +312,6 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
         addResults,
         favoritedIds,
         // Computed / helpers
-        selectedListCount,
         isFavorited,
         // Actions
         fetchLists,

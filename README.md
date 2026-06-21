@@ -1,75 +1,90 @@
-# foreUP Coding Challenge — TV Shows & Favorites
+# Showlist — foreUP Coding Challenge
 
-A small Laravel + Vue application for browsing television shows (via the TVmaze
-API) and organizing them into favorite lists.
+A small Laravel + Vue application for browsing television shows (via the
+[TVmaze](https://www.tvmaze.com/api) API) and organizing them into favorite
+lists.
 
-> **Status: planning + scaffold only.** The base Laravel 13 / Vue 3 application
-> has been scaffolded and committed. **Application features are not implemented
-> yet.** TVmaze integration, search, and favorite lists are *planned* and
-> documented under [`docs/`](docs/) — none of them work today.
+> **Status: complete.** The application is implemented and tested end to end —
+> TVmaze-backed search, favorite lists, and the single-screen Vue SPA all work.
+> Backend (PHPUnit) and frontend (Vitest) suites pass, the production build
+> succeeds, and Pint reports no style issues. See
+> [docs/IMPLEMENTATION_LOG.md](docs/IMPLEMENTATION_LOG.md) for the per-phase
+> verification record.
 
-## Coding-challenge overview
-
-The finished application will let a user:
+## What it does
 
 - Browse an initial unfiltered list of TV shows.
-- Search shows as they type (results in a responsive grid).
-- Create multiple favorite lists and save shows to one or more of them.
-- View lists alphabetically with a count of saved shows.
-- View a list's favorites ordered by most recently modified, and remove
-  individual favorites or delete whole lists.
+- Search shows as you type (debounced; results in a responsive grid, capped at
+  100).
+- Open a show to see its details (full plain-text summary, genres, network,
+  status, official-site link).
+- Create multiple favorite lists and save a show to one or more of them.
+- See lists alphabetically with a count of saved shows.
+- View a list's favorites and remove individual favorites or delete a whole
+  list.
+- A filled heart on the Browse grid marks shows already saved in at least one
+  list.
 
 All interactions happen through JavaScript without full-page reloads. The Vue
-frontend talks only to the Laravel API; **Laravel** is the only thing that calls
-TVmaze:
+frontend talks **only** to the Laravel API; **Laravel** is the only thing that
+calls TVmaze:
 
 ```text
-Vue frontend  ->  Laravel internal API  ->  TVmaze API
+Vue frontend  ->  Laravel internal API (/api/*)  ->  TVmaze API
 ```
 
-### Architecture summary (planned)
+## Architecture
 
 - **Laravel JSON API** under `/api/*` owns validation, persistence, TVmaze
-  communication, normalization, caching, and controlled errors.
-- **Minimal Blade shell** at `/` loads the built assets and hosts a single mount
-  point.
-- **Vue 3 client application** (Composition API, plain JS) mounts once into that
-  shell — a standalone SPA, **not** an Inertia app.
-- **Pinia** is *planned* for genuinely shared state (search + favorite lists);
-  it is not installed yet.
-- **No Vue Router initially** — browse and favorites are state-driven modes on
-  one screen.
+  communication, response normalization, short-lived caching, and controlled
+  errors. TVmaze HTML summaries are converted to plain text before they ever
+  reach the client.
+- **Minimal Blade shell** at `/` (`resources/views/app.blade.php`) loads the
+  built assets and hosts a single mount point.
+- **Vue 3 SPA** (Composition API, plain JS) mounts once into that shell — a
+  standalone SPA, **not** an Inertia app, **no** Vue Router. Browse and
+  Favorites are state-driven modes on one screen.
+- **Pinia** holds the two genuinely shared stores (`stores/shows.js`,
+  `stores/favoriteLists.js`); transient UI state stays local to components.
+- API calls use native **`fetch`** + `AbortController` via `services/api.js`
+  (no Axios).
+- Favorite records store **snapshots** of show data, so a saved show is
+  independent of any shared shows table.
 - The JSON API boundary keeps the frontend portable to a future Symfony backend.
 
-## Current implementation status
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
+[docs/DECISIONS.md](docs/DECISIONS.md) for the full rationale.
 
-| Area | Status |
-| --- | --- |
-| Laravel 13 + Vue 3 scaffold | ✅ Done |
-| Vite + Tailwind CSS 4 + SQLite | ✅ Configured |
-| Planning & architecture docs | ✅ This step |
-| TVmaze backend integration | ⬜ Planned |
-| Favorites database & API | ⬜ Planned |
-| Vue search UI | ⬜ Planned |
-| Vue favorites UI | ⬜ Planned |
-| Backend & frontend tests | ⬜ Planned |
+## API endpoints
 
-## Selected stack
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/shows?q=` | Search/browse shows (normalized, ≤100) |
+| `GET` | `/api/favorites/ids` | Distinct `external_id`s saved across all lists |
+| `GET` | `/api/favorite-lists` | All lists (alphabetical, with counts) |
+| `POST` | `/api/favorite-lists` | Create a list |
+| `GET` | `/api/favorite-lists/{list}` | A list with its favorites |
+| `DELETE` | `/api/favorite-lists/{list}` | Delete a list |
+| `POST` | `/api/favorite-lists/{list}/favorites` | Add a show snapshot to a list |
+| `DELETE` | `/api/favorite-lists/{list}/favorites/{favorite}` | Remove a favorite |
+
+Full request/response shapes: [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
+
+## Stack
 
 - Laravel 13 (PHP 8.4) — JSON API + minimal Blade shell
 - Vue 3 (Composition API) — plain JavaScript, **no TypeScript**; standalone SPA
-  (no Inertia, no Vue Router initially)
-- Pinia for shared frontend state *(planned; not yet installed)*
-- Native `fetch` + `AbortController` for API calls (no Axios)
+- Pinia for shared frontend state
+- Native `fetch` + `AbortController` (no Axios)
 - Vite, Tailwind CSS 4
 - SQLite
 - Laravel HTTP client (for TVmaze)
-- PHPUnit (ships with Laravel 13) for backend tests
-- Vitest + Vue Test Utils for frontend tests *(planned; not yet installed)*
+- PHPUnit (backend) · Vitest + Vue Test Utils (frontend)
 
-There is no authentication — assume a larger parent application would provide it.
+There is no authentication — by design, a larger parent application is assumed to
+provide it.
 
-## Local setup
+## Local setup (from a clean clone)
 
 ```bash
 # 1. PHP dependencies
@@ -78,60 +93,84 @@ composer install
 # 2. JS dependencies
 npm install
 
-# 3. Environment file + app key (skip if .env already exists)
+# 3. Environment file + app key
 cp .env.example .env
 php artisan key:generate
 
 # 4. SQLite database + schema
-touch database/database.sqlite      # already present after scaffold
+#    The database file is gitignored, so it does NOT exist after a fresh clone —
+#    create it before migrating.
+touch database/database.sqlite
 php artisan migrate
+
+# 5. Build the frontend (or use the dev server below)
+npm run build
 ```
 
 The project is configured for SQLite (`DB_CONNECTION=sqlite`) using
-`database/database.sqlite`.
+`database/database.sqlite`. The TVmaze base URL and timeout come from
+`TVMAZE_BASE_URL` / `TVMAZE_TIMEOUT` in `.env` (defaults provided in
+`.env.example`).
 
-## Development commands
+## Running the app
 
 ```bash
 php artisan serve     # Laravel backend at http://127.0.0.1:8000
-npm run dev           # Vite dev server (HMR)
+npm run dev           # Vite dev server (HMR) — for development
 ```
 
-## Build command
+Then open the Laravel URL. For a production-style run, `npm run build` and serve
+via Laravel alone.
+
+## Tests, build, and style
 
 ```bash
-npm run build         # Production frontend build (Vite)
+php artisan test          # Backend — PHPUnit (SQLite :memory:)
+npm run test              # Frontend — Vitest + Vue Test Utils
+npm run build             # Production frontend build
+./vendor/bin/pint --test  # PHP code-style check
 ```
 
-## Test commands (that currently exist)
+Automated backend tests **never** call the live TVmaze API — all upstream HTTP is
+faked with `Http::fake()`.
 
-```bash
-php artisan test      # Backend tests via PHPUnit (default scaffold tests only)
-# or:
-./vendor/bin/phpunit
-```
+## Screenshots
 
-> Frontend tests (Vitest) are **not installed yet**; an `npm test` script will be
-> added in the testing phase. Only the default Laravel example tests exist today.
+> _Add screenshots of the Browse grid, a show-details modal, and the Favorites
+> view here before submission (e.g. under `docs/screenshots/`)._
+
+## Known limitations
+
+- **Search is title-based only.** TVmaze exposes name/title search; there is no
+  genre or free-text description search upstream. A client-side **genre filter**
+  over already-fetched results is captured in
+  [docs/BACKLOG.md](docs/BACKLOG.md) but not implemented.
+- **Results are capped at 100** to keep payloads and rendering bounded.
+- **No authentication** (by design — see above).
+- Favorites store snapshots taken at save time, so a saved show does not
+  retro-update if TVmaze later changes that show's data.
 
 ## Documentation
 
 | Document | Purpose |
 | --- | --- |
 | [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) | Scope, phased plan, definition of done, risks |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Planned architecture and folder structure |
-| [docs/API_CONTRACT.md](docs/API_CONTRACT.md) | Planned internal Laravel API |
-| [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) | Planned SQLite schema |
+| [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) | Sequential implementation checklist |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture and folder structure |
+| [docs/API_CONTRACT.md](docs/API_CONTRACT.md) | Internal Laravel API contract |
+| [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) | SQLite schema |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture decision records |
+| [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | Testing approach and policy |
+| [docs/IMPLEMENTATION_LOG.md](docs/IMPLEMENTATION_LOG.md) | Per-phase verification record |
 | [docs/AI_WORKFLOW.md](docs/AI_WORKFLOW.md) | AI-assisted development process |
+| [docs/BACKLOG.md](docs/BACKLOG.md) | Deferred enhancement ideas |
 
 ## AI-assistance disclosure
 
-This project is developed with AI assistance (Claude Code) for planning,
-scaffolding, implementation suggestions, review, and documentation. All
-AI-generated changes are reviewed by the developer, and all commands and tests
-are actually run before being relied upon. See
+This project was developed with AI assistance (Claude Code) for planning,
+scaffolding, implementation, review, and documentation. The work followed a
+documented, phase-by-phase workflow with explicit review and handoff steps
+(`/review-feature`, `/feature-handoff`) and specialized agents. All AI-generated
+changes were reviewed by the developer, and every command and test reported as
+passing was actually run before being relied upon. See
 [docs/AI_WORKFLOW.md](docs/AI_WORKFLOW.md) for details.
-
-> This README is intentionally concise and will be expanded near project
-> completion.

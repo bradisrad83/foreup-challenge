@@ -49,8 +49,13 @@ rather than promising full keyword search.
 
 ## "Favorited" indicator on show cards
 
-**Status:** Backlog (not scheduled). **Type:** Cross-cutting — backend
-(+ contract) and frontend.
+**Status:** ✅ Implemented (see
+[IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md)). **Type:** Cross-cutting —
+backend (+ contract) and frontend.
+
+Delivered as designed below: `GET /api/favorites/ids` was added to
+[API_CONTRACT.md](API_CONTRACT.md) and the frontend fills the heart from that
+set, kept in sync on add/remove. The original proposal is kept for context.
 
 **What:** On the Browse grid, fill the heart icon (pink/red) when a show is
 already saved in **at least one** list, so users can tell at a glance what's
@@ -78,7 +83,8 @@ for the endpoint, then frontend.
 
 ## Favorites detail as a responsive grid
 
-**Status:** Backlog (not scheduled). **Type:** Frontend-only polish.
+**Status:** ✅ Implemented (see
+[IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md)). **Type:** Frontend-only polish.
 
 **What:** Render a selected list's favorites as a responsive card grid (similar
 to the Browse grid) instead of the current single full-width column of wide
