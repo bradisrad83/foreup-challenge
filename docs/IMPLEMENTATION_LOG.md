@@ -731,3 +731,105 @@ developer browser/keyboard pass. The remaining items (formal screen-reader pass,
 the `services/api.js` wrapper test) are non-critical and listed as explicit
 follow-ups; the Phase 6 definition of done is satisfied — hence **Complete with
 follow-up** rather than **Complete**.
+
+---
+
+## 2026-06-20 — Backlog enhancements: show-details modal and favorites grid
+
+**Build-plan phase:** Post-Phase-6 backlog enhancements (not a numbered phase)
+**Status:** Complete with follow-up
+**Commit:** 5aeb000 (details modal) + Pending (favorites grid)
+
+### Summary
+
+Two user-facing frontend enhancements drawn from `docs/BACKLOG.md` /
+DECISIONS #24, done before the Phase 7 final pass:
+
+1. **Show-details modal (DECISIONS #24).** Clicking a show card's poster or
+   title opens `ShowDetailsModal` (reusing `AppDialog`) with the full plain-text
+   summary and all normalized fields — no extra API call, no `v-html`, no Vue
+   Router. The card poster/title are keyboard-accessible "View details" buttons.
+   The modal carries the same add-to-list heart as the card; clicking it closes
+   the modal and opens the existing list picker (a sequential swap, to avoid two
+   stacked dialogs fighting over Escape/focus-trap/scroll-lock).
+
+2. **Favorites detail as a grid.** A list's saved shows now render in the same
+   full-width responsive grid as Browse (new `FavoriteCard`), replacing the
+   earlier narrow centered column of wide rows. Each `FavoriteCard` mirrors the
+   Browse card (poster, name, meta, genres, summary) with a remove "✕" in the
+   corner instead of the add heart, and opens the details modal on poster/title
+   click. The favorite's modal is configured `can-add="false"` `can-remove="true"`,
+   so it shows a remove "✕" that removes the show and closes the modal. The
+   previous `RemoveFavoriteButton.vue` was retired (its job moved into
+   `FavoriteCard`); `FavoritesPanel` dropped its `max-w-3xl` so the detail is
+   full-width.
+
+### Key files
+
+- `resources/js/components/shows/ShowDetailsModal.vue` (new; `canAdd`/`canRemove`)
+- `resources/js/components/shows/ShowCard.vue` (poster/title open details;
+  add-to-list from the modal)
+- `resources/js/components/favorites/FavoriteCard.vue` (new)
+- `resources/js/components/favorites/FavoriteListDetails.vue` (rows → grid)
+- `resources/js/components/layout/FavoritesPanel.vue` (full-width detail)
+- removed `resources/js/components/favorites/RemoveFavoriteButton.vue`
+- `docs/DECISIONS.md` (#24 marked Implemented)
+- tests: `ShowDetailsModal.test.js`, `ShowCard.test.js`, `FavoriteCard.test.js`
+  (new), `FavoriteListDetails.test.js`
+
+### Decisions and alignment
+
+- No backend, API contract, or database changes — both features reuse data the
+  client already holds (the favorite is a stored snapshot with the same shape as
+  a normalized show). No new dependencies. No `v-html`; summaries/names are text.
+- A modal (not a route) keeps "no Vue Router" (#12) / one-screen state-driven
+  (#23) intact. Transient dialog/removing state is kept local to components.
+- DECISIONS #24 updated from "planned" to "Implemented".
+
+### Verification
+
+Commands actually run in this handoff:
+
+- `npm run test` → passed: 14 test files, 122 tests (93 from Phase 5 + the new
+  modal/card/grid coverage). No live network; API mocked; Pinia reset per test.
+- `npm run build` → passed.
+
+Behavior coverage:
+
+- **Verified (automated):** poster/title open the details modal; the modal renders
+  the full summary as plain text (raw markup not interpreted), all genres, a
+  no-summary fallback, and an official-site link only for `http(s)` URLs
+  (`javascript:` guarded); add-to-list from the modal closes details and opens
+  the picker; the favorites detail renders one `FavoriteCard` per favorite; the
+  card's remove "✕" calls the store with the right id; removing from inside the
+  modal removes and closes the modal; the modal shows the add heart vs. the remove
+  "✕" per `canAdd`/`canRemove`.
+- **Verified (build):** production build passes.
+- **Not verified (automated):** the visual/responsive feel of the new grid and
+  modal (developer browser check); the `services/api.js` wrapper test (carried
+  Phase 5 follow-up).
+
+### AI workflow
+
+- Agent: implemented in the main session (small, iterative UI changes) rather than
+  delegated.
+- Skills: `implement-vue-feature` patterns; `write-tests` for the new coverage.
+- Human checkpoints: developer requested the detail modal, then the title trigger,
+  the modal heart (replacing a footer button), the favorites grid (with a
+  screenshot prompting the layout decision), and the in-modal remove "✕".
+
+### Follow-ups
+
+- Membership endpoint (`GET /api/favorites/ids` + contract update) — would enable
+  "remove from a Browse card's modal" and the filled-heart "favorited" indicator
+  (still in `docs/BACKLOG.md`).
+- Carried from Phase 5: a direct `services/api.js` wrapper test.
+- Possible DRY: extract a shared card base used by both `ShowCard` and
+  `FavoriteCard` (currently parallel markup).
+
+Status justification: both enhancements are implemented and covered by new
+deterministic Vitest tests (122 passing) with a passing build; they add no
+backend/contract/DB surface. The only unverified items — the visual feel
+(developer browser check) and the carried `services/api.js` test — are
+non-critical and listed as explicit follow-ups, so this is **Complete with
+follow-up**.

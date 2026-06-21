@@ -98,7 +98,7 @@ describe('FavoriteListDetails component', () => {
     // Favorites list
     // -----------------------------------------------------------------------
 
-    it('renders one item per favorite when list has favorites', () => {
+    it('renders one card per favorite when list has favorites', () => {
         const store = useFavoriteListsStore();
         store.selectedListLoading = false;
         store.selectedListError = null;
@@ -111,8 +111,9 @@ describe('FavoriteListDetails component', () => {
         };
 
         const wrapper = mount(FavoriteListDetails);
-        const items = wrapper.findAll('li');
-        expect(items).toHaveLength(2);
+        // Each favorite renders as a FavoriteCard (<article>) in the grid
+        const cards = wrapper.findAll('article');
+        expect(cards).toHaveLength(2);
         expect(wrapper.text()).toContain('Breaking Bad');
         expect(wrapper.text()).toContain('Ozark');
     });
@@ -183,7 +184,7 @@ describe('FavoriteListDetails component', () => {
     });
 
     // -----------------------------------------------------------------------
-    // RemoveFavoriteButton integration
+    // Remove favorite (via FavoriteCard's remove button)
     // -----------------------------------------------------------------------
 
     it('remove button calls removeFromList when clicked', async () => {

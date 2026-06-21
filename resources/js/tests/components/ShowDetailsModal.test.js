@@ -108,4 +108,26 @@ describe('ShowDetailsModal', () => {
 
         expect(wrapper.emitted('add-to-list')).toBeTruthy();
     });
+
+    it('shows no add heart and no remove button by default config combos', () => {
+        // canAdd default true → add heart present, remove absent
+        mount(ShowDetailsModal, { props: { open: true, show: makeShow() }, attachTo: document.body });
+        expect(document.querySelector('[role="dialog"] button[aria-label*="favorite list"]')).not.toBeNull();
+        expect(document.querySelector('[role="dialog"] button[aria-label*="Remove"]')).toBeNull();
+    });
+
+    it('with can-remove (and not can-add), shows a remove button that emits remove', () => {
+        const wrapper = mount(ShowDetailsModal, {
+            props: { open: true, show: makeShow(), canAdd: false, canRemove: true },
+            attachTo: document.body,
+        });
+
+        // No add heart
+        expect(document.querySelector('[role="dialog"] button[aria-label*="favorite list"]')).toBeNull();
+
+        const removeBtn = document.querySelector('[role="dialog"] button[aria-label*="Remove"]');
+        expect(removeBtn).not.toBeNull();
+        removeBtn.click();
+        expect(wrapper.emitted('remove')).toBeTruthy();
+    });
 });

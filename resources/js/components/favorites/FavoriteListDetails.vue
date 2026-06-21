@@ -9,13 +9,13 @@
  * - Loading skeleton
  * - Error state
  * - Empty state
- * - Remove favorite (via RemoveFavoriteButton)
+ * - Remove favorite (the remove action lives on each FavoriteCard)
  * - Delete list with confirmation (ConfirmDialog)
  * - Back navigation (deselect)
  */
 import { ref, computed } from 'vue';
 import { useFavoriteListsStore } from '../../stores/favoriteLists.js';
-import RemoveFavoriteButton from './RemoveFavoriteButton.vue';
+import FavoriteCard from './FavoriteCard.vue';
 import ConfirmDialog from '../shared/ConfirmDialog.vue';
 import ErrorAlert from '../shared/ErrorAlert.vue';
 
@@ -28,12 +28,9 @@ const list = computed(() => favoriteListsStore.selectedList);
 const loading = computed(() => favoriteListsStore.selectedListLoading);
 const error = computed(() => favoriteListsStore.selectedListError);
 
-const PLACEHOLDER =
-    'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="60" height="85" viewBox="0 0 60 85"%3E%3Crect width="60" height="85" fill="%23e5e7eb"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="8" fill="%239ca3af"%3ENo img%3C/text%3E%3C/svg%3E';
-
-function onImageError(event) {
-    event.target.src = PLACEHOLDER;
-}
+// Shared responsive grid layout (matches the Browse grid).
+const GRID_CLASS =
+    'grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
 
 async function confirmDelete() {
     deleteLoading.value = true;
@@ -102,17 +99,17 @@ async function confirmDelete() {
             </button>
         </div>
 
-        <!-- Loading skeleton -->
-        <div v-if="loading" aria-label="Loading favorites" class="space-y-3">
+        <!-- Loading skeleton (grid of poster placeholders) -->
+        <div v-if="loading" :class="GRID_CLASS" aria-label="Loading favorites">
             <div
-                v-for="i in 3"
+                v-for="i in 6"
                 :key="i"
-                class="flex animate-pulse gap-3 rounded-lg border border-gray-100 p-3"
+                class="overflow-hidden rounded-lg border border-gray-200"
             >
-                <div class="h-[68px] w-12 shrink-0 rounded bg-gray-200"></div>
-                <div class="flex-1 space-y-2 py-1">
-                    <div class="h-3 w-3/4 rounded bg-gray-200"></div>
-                    <div class="h-3 w-1/2 rounded bg-gray-200"></div>
+                <div class="aspect-[3/4] animate-pulse bg-gray-200"></div>
+                <div class="space-y-2 p-4">
+                    <div class="h-3 w-3/4 animate-pulse rounded bg-gray-200"></div>
+                    <div class="h-3 w-1/2 animate-pulse rounded bg-gray-200"></div>
                 </div>
             </div>
         </div>
@@ -144,56 +141,18 @@ async function confirmDelete() {
             <p class="mt-1 text-xs text-gray-400">Add shows using the heart button on any show card.</p>
         </div>
 
-        <!-- Favorites list (updated_at desc order as returned by API) -->
-        <ul
+        <!-- Favorites grid (updated_at desc order as returned by API) -->
+        <div
             v-else-if="list && list.favorites && list.favorites.length"
-            role="list"
+            :class="GRID_CLASS"
             aria-label="Favorites in this list"
-            class="space-y-2"
         >
-            <li
+            <FavoriteCard
                 v-for="favorite in list.favorites"
                 :key="favorite.id"
-                class="flex items-start gap-3 rounded-lg border border-gray-100 bg-white p-3 shadow-sm"
-            >
-                <!-- Thumbnail -->
-                <div class="h-[68px] w-12 shrink-0 overflow-hidden rounded bg-gray-100">
-                    <img
-                        :src="favorite.image_url || PLACEHOLDER"
-                        :alt="favorite.name ? `Poster for ${favorite.name}` : 'Show poster'"
-                        loading="lazy"
-                        class="h-full w-full object-cover"
-                        @error="onImageError"
-                    />
-                </div>
-
-                <!-- Info -->
-                <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-medium text-gray-900">
-                        {{ favorite.name }}
-                    </p>
-                    <div class="mt-0.5 flex flex-wrap gap-x-2 text-xs text-gray-500">
-                        <span v-if="favorite.network">{{ favorite.network }}</span>
-                        <span v-if="favorite.premiered">{{ favorite.premiered.slice(0, 4) }}</span>
-                        <span v-if="favorite.rating != null" class="font-medium text-amber-600">
-                            &#9733; {{ Number(favorite.rating).toFixed(1) }}
-                        </span>
-                    </div>
-                    <div v-if="favorite.genres && favorite.genres.length" class="mt-1 flex flex-wrap gap-1">
-                        <span
-                            v-for="genre in favorite.genres.slice(0, 2)"
-                            :key="genre"
-                            class="rounded-full bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-700"
-                        >
-                            {{ genre }}
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Remove button -->
-                <RemoveFavoriteButton :favorite-id="favorite.id" class="mt-0.5 shrink-0" />
-            </li>
-        </ul>
+                :favorite="favorite"
+            />
+        </div>
 
         <!-- Counts footer -->
         <p v-if="list" class="mt-3 text-right text-xs text-gray-400">
