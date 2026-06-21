@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import {
     getFavoriteLists,
     createFavoriteList,
@@ -30,25 +30,16 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
     // State
     // -------------------------------------------------------------------------
 
-    /** @type {import('vue').Ref<Array>} All lists (alphabetical, with counts) */
+    /** All lists (alphabetical, with counts). */
     const lists = ref([]);
-
-    /** @type {import('vue').Ref<boolean>} */
     const listsLoading = ref(false);
-
-    /** @type {import('vue').Ref<string|null>} */
     const listsError = ref(null);
 
-    /** @type {import('vue').Ref<number|null>} Currently selected list id */
+    /** Currently selected list id. */
     const selectedListId = ref(null);
-
-    /** @type {import('vue').Ref<object|null>} Full detail of the selected list (including favorites) */
+    /** Full detail of the selected list (including its favorites). */
     const selectedList = ref(null);
-
-    /** @type {import('vue').Ref<boolean>} */
     const selectedListLoading = ref(false);
-
-    /** @type {import('vue').Ref<string|null>} */
     const selectedListError = ref(null);
 
     /**
@@ -64,21 +55,12 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
      * Distinct external_ids of every saved show across ALL lists — powers the
      * "favorited" indicator (filled heart) on the browse grid. Loaded on mount
      * and kept in sync after add/remove/delete mutations.
-     *
-     * @type {import('vue').Ref<number[]>}
      */
     const favoritedIds = ref([]);
 
     // -------------------------------------------------------------------------
-    // Computed
+    // Computed / helpers
     // -------------------------------------------------------------------------
-
-    /** The count of the currently selected list (reactive, stays in sync). */
-    const selectedListCount = computed(() => {
-        if (selectedListId.value === null) return 0;
-        const match = lists.value.find((l) => l.id === selectedListId.value);
-        return match ? match.favorites_count : 0;
-    });
 
     /** Whether a show (by external_id) is saved in at least one list. */
     function isFavorited(externalId) {
@@ -187,9 +169,7 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
     async function deleteList(id) {
         try {
             await deleteFavoriteList(id);
-            // Remove from local lists
             lists.value = lists.value.filter((l) => l.id !== id);
-            // If this was the selected list, deselect
             if (selectedListId.value === id) {
                 deselectList();
             }
@@ -220,13 +200,12 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
             const listName = listMeta ? listMeta.name : `List ${listId}`;
             try {
                 await addFavorite(listId, show);
-                // Increment the count locally
                 lists.value = lists.value.map((l) =>
                     l.id === listId
                         ? { ...l, favorites_count: (l.favorites_count || 0) + 1 }
                         : l,
                 );
-                // If this is the currently selected list, refresh its detail
+                // If it's the open list, refresh its detail so the new card shows.
                 if (selectedListId.value === listId && selectedList.value) {
                     await selectList(listId);
                 }
@@ -266,7 +245,6 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
         if (listId === null) return false;
         try {
             await removeFavorite(listId, favoriteId);
-            // Remove from the selectedList favorites
             if (selectedList.value) {
                 selectedList.value = {
                     ...selectedList.value,
@@ -279,7 +257,6 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
                     ),
                 };
             }
-            // Decrement count in the lists index
             lists.value = lists.value.map((l) =>
                 l.id === listId
                     ? { ...l, favorites_count: Math.max(0, (l.favorites_count || 1) - 1) }
@@ -319,7 +296,6 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
         addResults,
         favoritedIds,
         // Computed / helpers
-        selectedListCount,
         isFavorited,
         // Actions
         fetchLists,

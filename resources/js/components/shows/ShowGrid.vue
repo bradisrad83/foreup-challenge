@@ -33,14 +33,12 @@ const emptyMessage = computed(() =>
     </div>
 
     <!-- Exclusive state chain: error → loading → empty → results -->
-    <!-- Error state -->
     <ErrorAlert
         v-if="showsStore.error"
         :message="showsStore.error"
         class="mb-6"
     />
 
-    <!-- Loading skeleton grid -->
     <div
         v-else-if="showsStore.loading"
         :class="GRID_CLASS"
@@ -52,13 +50,11 @@ const emptyMessage = computed(() =>
         />
     </div>
 
-    <!-- Empty state (not loading, no results) -->
     <EmptyState
         v-else-if="!showsStore.results.length"
         :message="emptyMessage"
     />
 
-    <!-- Results grid -->
     <div
         v-else
         :class="GRID_CLASS"

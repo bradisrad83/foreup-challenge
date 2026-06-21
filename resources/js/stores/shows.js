@@ -15,7 +15,6 @@ export const useShowsStore = defineStore('shows', () => {
     const loading = ref(false);
     const error = ref(null);
 
-    // Track the active AbortController so we can cancel superseded requests
     let abortController = null;
 
     /**
@@ -25,7 +24,6 @@ export const useShowsStore = defineStore('shows', () => {
      * @param {string} [searchQuery] - optional search string
      */
     async function fetchShows(searchQuery = '') {
-        // Cancel any in-flight request
         if (abortController !== null) {
             abortController.abort();
         }
@@ -40,7 +38,6 @@ export const useShowsStore = defineStore('shows', () => {
 
         try {
             const json = await getShows(params, signal);
-            // Defensive cap at 100 (API already enforces this)
             results.value = (json.data || []).slice(0, 100);
             error.value = null;
         } catch (err) {
@@ -51,16 +48,15 @@ export const useShowsStore = defineStore('shows', () => {
             results.value = [];
             error.value = err.message || 'Something went wrong. Please try again.';
         } finally {
-            // Only clear loading if this controller is still the active one.
-            // If a new request was started this controller was already replaced;
-            // the new one will clear loading when it finishes.
+            // Only clear loading if this request is still the active one; a newer
+            // request will have replaced the controller and owns the loading flag.
             if (signal === abortController?.signal) {
                 loading.value = false;
             }
         }
     }
 
-    /** Clear the search query and reload the initial unfiltered list. */
+    /** Reset to the initial unfiltered list (clears any active search). */
     function clearSearch() {
         fetchShows('');
     }

@@ -13,6 +13,8 @@ const props = defineProps({
     show: { type: Object, default: null },
     // Whether to show the add-to-list heart (Browse cards).
     canAdd: { type: Boolean, default: true },
+    // Whether this show is already saved in at least one list (fills the heart).
+    isFavorited: { type: Boolean, default: false },
     // Whether to show the remove "✕" (when viewing an already-saved favorite).
     canRemove: { type: Boolean, default: false },
 });
@@ -63,14 +65,17 @@ const showType = computed(() => props.show?.metadata?.show_type ?? null);
                 <button
                     v-if="canAdd"
                     type="button"
-                    class="absolute right-1.5 top-1.5 z-10 rounded-full bg-white/90 p-1.5 text-gray-500 shadow-sm hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    :aria-label="show.name ? `Add ${show.name} to a favorite list` : 'Add to a favorite list'"
+                    class="absolute right-1.5 top-1.5 z-10 rounded-full bg-white/90 p-1.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    :class="isFavorited ? 'text-rose-500 hover:text-rose-600' : 'text-gray-500 hover:text-indigo-600'"
+                    :aria-label="isFavorited
+                        ? `${show.name} is saved — add to more lists`
+                        : (show.name ? `Add ${show.name} to a favorite list` : 'Add to a favorite list')"
                     @click="emit('add-to-list')"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         class="h-4 w-4"
-                        fill="none"
+                        :fill="isFavorited ? 'currentColor' : 'none'"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
                         aria-hidden="true"
