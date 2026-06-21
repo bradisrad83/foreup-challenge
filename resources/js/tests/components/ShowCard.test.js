@@ -20,6 +20,15 @@ vi.mock('../../components/favorites/FavoriteListSelector.vue', () => ({
     },
 }));
 
+vi.mock('../../components/shows/ShowDetailsModal.vue', () => ({
+    default: {
+        name: 'ShowDetailsModal',
+        props: ['open', 'show'],
+        emits: ['close', 'add-to-list'],
+        template: '<div data-testid="details" :data-open="open"></div>',
+    },
+}));
+
 function makeShow(overrides = {}) {
     return {
         external_id: 169,
@@ -129,5 +138,58 @@ describe('ShowCard component', () => {
 
         const selectorAfter = wrapper.find('[data-testid="selector"]');
         expect(selectorAfter.attributes('data-open')).toBe('true');
+    });
+
+    it('clicking the poster opens the details modal (local state)', async () => {
+        const show = makeShow();
+        const wrapper = mount(ShowCard, { props: { show } });
+
+        expect(wrapper.find('[data-testid="details"]').attributes('data-open')).toBe('false');
+
+        const posterBtn = wrapper.find('button[aria-label^="View details"]');
+        expect(posterBtn.exists()).toBe(true);
+        await posterBtn.trigger('click');
+
+        expect(wrapper.find('[data-testid="details"]').attributes('data-open')).toBe('true');
+    });
+
+    it('opening details does not open the add-to-list selector', async () => {
+        const show = makeShow();
+        const wrapper = mount(ShowCard, { props: { show } });
+
+        await wrapper.find('button[aria-label^="View details"]').trigger('click');
+
+        // The two transient dialogs are independent
+        expect(wrapper.find('[data-testid="details"]').attributes('data-open')).toBe('true');
+        expect(wrapper.find('[data-testid="selector"]').attributes('data-open')).toBe('false');
+    });
+
+    it('clicking the title opens the details modal', async () => {
+        const show = makeShow();
+        const wrapper = mount(ShowCard, { props: { show } });
+
+        const titleBtn = wrapper.find('h2 button');
+        expect(titleBtn.exists()).toBe(true);
+        await titleBtn.trigger('click');
+
+        expect(wrapper.find('[data-testid="details"]').attributes('data-open')).toBe('true');
+    });
+
+    it('add-to-list from the details modal closes details and opens the selector', async () => {
+        const show = makeShow();
+        const wrapper = mount(ShowCard, { props: { show } });
+
+        // Open details first
+        await wrapper.find('button[aria-label^="View details"]').trigger('click');
+        expect(wrapper.find('[data-testid="details"]').attributes('data-open')).toBe('true');
+
+        // The details modal asks to add to a list
+        wrapper.findComponent({ name: 'ShowDetailsModal' }).vm.$emit('add-to-list');
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        // Details closes, the picker opens (no two stacked dialogs)
+        expect(wrapper.find('[data-testid="details"]').attributes('data-open')).toBe('false');
+        expect(wrapper.find('[data-testid="selector"]').attributes('data-open')).toBe('true');
     });
 });
