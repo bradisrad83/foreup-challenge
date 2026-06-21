@@ -1,4 +1,4 @@
-# Showlist — foreUP Coding Challenge
+# Showlist
 
 A small Laravel + Vue application for browsing television shows (via the
 [TVmaze](https://www.tvmaze.com/api) API) and organizing them into favorite

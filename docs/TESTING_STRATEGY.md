@@ -1,6 +1,6 @@
 # Testing Strategy
 
-The canonical testing policy for the foreUP TV-show + favorites challenge. The
+The canonical testing policy for the TV-show + favorites application. The
 `write-tests` skill is the procedure; this document is the policy. Project
 -specific scenarios live in [BUILD_PLAN.md](BUILD_PLAN.md) (phase acceptance
 criteria) and [API_CONTRACT.md](API_CONTRACT.md) (endpoints, status codes,

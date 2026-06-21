@@ -1,8 +1,8 @@
 # Implementation Log
 
 A lightweight, append-only record of meaningful implementation milestones for the
-foreUP TV-show + favorites challenge — completed build-plan phases and
-user-facing features.
+TV-show + favorites application — completed build-plan phases and user-facing
+features.
 
 - It records **meaningful milestones, not every small code change**.
 - It **complements Git history** (the authoritative record of every change)
@@ -975,8 +975,8 @@ Commands actually run in this handoff:
 - `npm run test` → passed: 14 files, 127 tests (no change in count; no test
   depends on the brand text or the input `type`).
 - `npm run build` → passed.
-- `curl https://foreup-challenge.test/favicon.svg` → HTTP 200 (`image/svg+xml`).
-- `curl https://foreup-challenge.test` → `<title>Showlist — Browse & save TV
+- `curl https://showlist.test/favicon.svg` → HTTP 200 (`image/svg+xml`).
+- `curl https://showlist.test` → `<title>Showlist — Browse & save TV
   shows</title>` in the served HTML.
 
 Behavior coverage:
