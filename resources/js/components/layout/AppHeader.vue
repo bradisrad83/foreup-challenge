@@ -32,7 +32,7 @@ function onTablistKeydown(event) {
 </script>
 
 <template>
-    <header class="sticky top-0 z-10 border-b border-gray-200 bg-white/90 backdrop-blur-sm">
+    <header class="sticky top-0 z-30 border-b border-gray-200 bg-white/90 backdrop-blur-sm">
         <div class="mx-auto max-w-screen-2xl px-4 py-3 sm:px-6">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <!-- App title -->
