@@ -10,6 +10,7 @@ vi.mock('../../services/api.js', () => ({
     getFavoriteList: vi.fn(),
     deleteFavoriteList: vi.fn(),
     removeFavorite: vi.fn(),
+    getFavoriteIds: vi.fn().mockResolvedValue({ data: [] }),
 }));
 
 import { deleteFavoriteList, removeFavorite } from '../../services/api.js';

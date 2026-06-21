@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
+import { useFavoriteListsStore } from '../../stores/favoriteLists.js';
 import ShowCard from '../../components/shows/ShowCard.vue';
 
 // Mock the api and the FavoriteListSelector dependency (it brings in a large
@@ -9,6 +10,7 @@ vi.mock('../../services/api.js', () => ({
     getFavoriteLists: vi.fn(),
     createFavoriteList: vi.fn(),
     addFavorite: vi.fn(),
+    getFavoriteIds: vi.fn().mockResolvedValue({ data: [] }),
 }));
 
 vi.mock('../../components/favorites/FavoriteListSelector.vue', () => ({
@@ -162,6 +164,23 @@ describe('ShowCard component', () => {
         // The two transient dialogs are independent
         expect(wrapper.find('[data-testid="details"]').attributes('data-open')).toBe('true');
         expect(wrapper.find('[data-testid="selector"]').attributes('data-open')).toBe('false');
+    });
+
+    it('shows an outline heart when the show is not favorited', () => {
+        const wrapper = mount(ShowCard, { props: { show: makeShow({ external_id: 169 }) } });
+        const heartSvg = wrapper.find('button[aria-label^="Add"] svg');
+        expect(heartSvg.attributes('fill')).toBe('none');
+    });
+
+    it('fills the heart when the show is already favorited', () => {
+        const store = useFavoriteListsStore();
+        store.favoritedIds = [169];
+
+        const wrapper = mount(ShowCard, { props: { show: makeShow({ external_id: 169 }) } });
+        // When favorited, the heart button label changes to "… is saved …"
+        const heartBtn = wrapper.find('button[aria-label*="is saved"]');
+        expect(heartBtn.exists()).toBe(true);
+        expect(heartBtn.find('svg').attributes('fill')).toBe('currentColor');
     });
 
     it('clicking the title opens the details modal', async () => {

@@ -1,5 +1,6 @@
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, computed, nextTick } from 'vue';
+import { useFavoriteListsStore } from '../../stores/favoriteLists.js';
 import FavoriteListSelector from '../favorites/FavoriteListSelector.vue';
 import ShowDetailsModal from './ShowDetailsModal.vue';
 
@@ -12,6 +13,11 @@ const props = defineProps({
         required: true,
     },
 });
+
+const favoriteListsStore = useFavoriteListsStore();
+
+// Whether this show is already saved in at least one list (filled heart).
+const isFavorited = computed(() => favoriteListsStore.isFavorited(props.show.external_id));
 
 // Transient UI state — local only, not in the store (ARCHITECTURE.md: state strategy)
 const selectorOpen = ref(false);
@@ -58,17 +64,20 @@ function truncate(text, maxLength = 160) {
                 />
             </button>
 
-            <!-- Add to list button (overlaid on poster) -->
+            <!-- Add to list button (overlaid on poster); heart fills when favorited -->
             <button
                 type="button"
-                class="absolute right-2 top-2 z-10 rounded-full bg-white/90 p-1.5 text-gray-500 shadow-sm hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                :aria-label="`Add ${show.name} to a favorite list`"
+                class="absolute right-2 top-2 z-10 rounded-full bg-white/90 p-1.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                :class="isFavorited ? 'text-rose-500 hover:text-rose-600' : 'text-gray-500 hover:text-indigo-600'"
+                :aria-label="isFavorited
+                    ? `${show.name} is saved — add to more lists`
+                    : `Add ${show.name} to a favorite list`"
                 @click.stop="selectorOpen = true"
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     class="h-4 w-4"
-                    fill="none"
+                    :fill="isFavorited ? 'currentColor' : 'none'"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                     aria-hidden="true"

@@ -184,3 +184,11 @@ export function addFavorite(listId, show) {
 export function removeFavorite(listId, favoriteId) {
     return request(`/favorite-lists/${listId}/favorites/${favoriteId}`, { method: 'DELETE' });
 }
+
+/**
+ * GET /api/favorites/ids
+ * Distinct external_ids of every saved show across all lists.
+ */
+export function getFavoriteIds() {
+    return request('/favorites/ids');
+}
