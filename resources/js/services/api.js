@@ -24,13 +24,11 @@ const BASE = '/api';
  * @returns {string|null}
  */
 function getCsrfToken() {
-    // Try <meta name="csrf-token"> first (most reliable)
     const metaTag = document.querySelector('meta[name="csrf-token"]');
     if (metaTag) {
         return metaTag.getAttribute('content');
     }
 
-    // Fall back to the XSRF-TOKEN cookie
     const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
     if (match) {
         return decodeURIComponent(match[1]);
@@ -73,7 +71,6 @@ async function request(path, { method = 'GET', params, body, signal } = {}) {
         headers['Content-Type'] = 'application/json';
     }
 
-    // Send CSRF token on state-mutating requests
     const mutatingMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
     if (mutatingMethods.includes(method.toUpperCase())) {
         const token = getCsrfToken();

@@ -41,7 +41,6 @@ class FavoriteListController extends Controller
             'normalized_name' => FavoriteList::normalizeName($name),
         ]);
 
-        // Load favorites_count for the response (0 for a newly created list)
         $list->loadCount('favorites');
 
         return (new FavoriteListResource($list))
