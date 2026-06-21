@@ -16,6 +16,7 @@ const showLists = ref(false);
 onMounted(() => {
     showsStore.fetchShows();
     favoriteListsStore.fetchLists();
+    favoriteListsStore.fetchFavoritedIds();
 });
 </script>
 

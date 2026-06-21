@@ -12,6 +12,7 @@ vi.mock('../../services/api.js', () => ({
     deleteFavoriteList: vi.fn(),
     addFavorite: vi.fn(),
     removeFavorite: vi.fn(),
+    getFavoriteIds: vi.fn().mockResolvedValue({ data: [] }),
 }));
 
 import {
@@ -21,6 +22,7 @@ import {
     deleteFavoriteList,
     addFavorite,
     removeFavorite,
+    getFavoriteIds,
 } from '../../services/api.js';
 
 // ---------------------------------------------------------------------------
@@ -426,5 +428,52 @@ describe('favoriteLists store', () => {
 
         store.clearAddResults();
         expect(store.addResults).toEqual([]);
+    });
+
+    // -----------------------------------------------------------------------
+    // Favorited ids (filled-heart indicator)
+    // -----------------------------------------------------------------------
+
+    it('fetchFavoritedIds populates favoritedIds and isFavorited reflects it', async () => {
+        getFavoriteIds.mockResolvedValueOnce({ data: [169, 200] });
+
+        const store = useFavoriteListsStore();
+        await store.fetchFavoritedIds();
+
+        expect(store.favoritedIds).toEqual([169, 200]);
+        expect(store.isFavorited(169)).toBe(true);
+        expect(store.isFavorited(999)).toBe(false);
+    });
+
+    it('addToLists marks the show as favorited', async () => {
+        getFavoriteLists.mockResolvedValueOnce({ data: [makeList({ id: 1 })] });
+        addFavorite.mockResolvedValueOnce({ data: makeFavorite() });
+
+        const store = useFavoriteListsStore();
+        await store.fetchLists();
+        expect(store.isFavorited(169)).toBe(false);
+
+        await store.addToLists(makeShow({ external_id: 169 }), [1]);
+
+        expect(store.isFavorited(169)).toBe(true);
+    });
+
+    it('removeFromList re-fetches the favorited ids', async () => {
+        const store = useFavoriteListsStore();
+        store.selectedListId = 1;
+        store.selectedList = {
+            ...makeList({ id: 1, favorites_count: 1 }),
+            favorites: [makeFavorite({ id: 10, external_id: 169 })],
+        };
+        store.lists = [makeList({ id: 1, favorites_count: 1 })];
+        store.favoritedIds = [169];
+
+        removeFavorite.mockResolvedValueOnce(null);
+        getFavoriteIds.mockResolvedValueOnce({ data: [] }); // gone from every list
+
+        await store.removeFromList(10);
+
+        expect(getFavoriteIds).toHaveBeenCalled();
+        expect(store.favoritedIds).toEqual([]);
     });
 });

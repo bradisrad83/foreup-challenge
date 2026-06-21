@@ -176,11 +176,12 @@ the reason, and the tradeoff/consequence. These reflect *planning* intent.
 - **Tradeoff:** No distinct URLs per mode; revisit alongside #12 if
   URL-addressable views are later required.
 
-## 24. Show details via a modal (not a page) — planned enhancement
-- **Decision:** When a fuller show view is added, present it as a **modal
-  dialog** (reusing the planned `components/shared/AppDialog.vue`), not as a
-  separate page. Target slot: **after BUILD_PLAN Phase 4**, so the core
-  search → favorites flow lands first. Not yet implemented.
+## 24. Show details via a modal (not a page)
+- **Decision:** Present a fuller show view as a **modal dialog** (reusing
+  `components/shared/AppDialog.vue`), not as a separate page. **Implemented** as
+  `resources/js/components/shows/ShowDetailsModal.vue`, opened by clicking a show
+  card's poster (keyboard-accessible "View details" button); shows the full
+  plain-text summary and all normalized fields with no extra API call.
 - **Reason:** Show cards intentionally truncate the summary; a detail view lets
   the user read the full plain-text summary and all normalized fields. The data
   is **already returned by `GET /api/shows`** (full `summary`, `genres`,

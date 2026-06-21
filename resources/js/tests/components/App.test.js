@@ -22,6 +22,7 @@ import App from '../../App.vue';
 vi.mock('../../services/api.js', () => ({
     getShows: vi.fn().mockResolvedValue({ data: [] }),
     getFavoriteLists: vi.fn().mockResolvedValue({ data: [] }),
+    getFavoriteIds: vi.fn().mockResolvedValue({ data: [] }),
 }));
 
 vi.mock('../../components/layout/AppHeader.vue', () => ({

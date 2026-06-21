@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/shows', [ShowController::class, 'index']);
 
+// Distinct external_ids of all saved shows (for the "favorited" indicator).
+Route::get('/favorites/ids', [FavoriteController::class, 'ids']);
+
 // Returned when the {favoriteList} route-model binding cannot be resolved.
 $favoriteListMissing = fn () => response()->json(['message' => 'Favorite list not found.'], 404);
 

@@ -7,6 +7,7 @@ import {
     deleteFavoriteList,
     addFavorite,
     removeFavorite,
+    getFavoriteIds,
 } from '../services/api.js';
 
 /**
@@ -59,6 +60,15 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
     const createErrors = ref(null); // field-level errors object from 422
     const addResults = ref([]); // per-list outcomes after addToLists
 
+    /**
+     * Distinct external_ids of every saved show across ALL lists — powers the
+     * "favorited" indicator (filled heart) on the browse grid. Loaded on mount
+     * and kept in sync after add/remove/delete mutations.
+     *
+     * @type {import('vue').Ref<number[]>}
+     */
+    const favoritedIds = ref([]);
+
     // -------------------------------------------------------------------------
     // Computed
     // -------------------------------------------------------------------------
@@ -69,6 +79,11 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
         const match = lists.value.find((l) => l.id === selectedListId.value);
         return match ? match.favorites_count : 0;
     });
+
+    /** Whether a show (by external_id) is saved in at least one list. */
+    function isFavorited(externalId) {
+        return favoritedIds.value.includes(externalId);
+    }
 
     // -------------------------------------------------------------------------
     // Actions
@@ -87,6 +102,19 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
             listsError.value = err.message || 'Could not load your favorite lists.';
         } finally {
             listsLoading.value = false;
+        }
+    }
+
+    /**
+     * Load the set of favorited external_ids (for the filled-heart indicator).
+     * Non-critical: a failure just leaves the indicator unchanged.
+     */
+    async function fetchFavoritedIds() {
+        try {
+            const json = await getFavoriteIds();
+            favoritedIds.value = json.data || [];
+        } catch {
+            // ignore — only affects the favorited indicator
         }
     }
 
@@ -165,6 +193,8 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
             if (selectedListId.value === id) {
                 deselectList();
             }
+            // Cascade-deleted favorites may no longer be saved anywhere.
+            await fetchFavoritedIds();
             return true;
         } catch (err) {
             return false;
@@ -215,6 +245,15 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
         });
 
         addResults.value = await Promise.all(requests);
+
+        // The show is now favorited if it landed in (or already existed in) any
+        // list — mark it so the heart fills immediately.
+        const saved = addResults.value.some(
+            (r) => r.status === 'added' || r.status === 'duplicate',
+        );
+        if (saved && show && show.external_id != null && !isFavorited(show.external_id)) {
+            favoritedIds.value = [...favoritedIds.value, show.external_id];
+        }
     }
 
     /**
@@ -246,6 +285,9 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
                     ? { ...l, favorites_count: Math.max(0, (l.favorites_count || 1) - 1) }
                     : l,
             );
+            // The show may still be in other lists — re-fetch the favorited set
+            // so the heart only un-fills when it's gone from every list.
+            await fetchFavoritedIds();
             return true;
         } catch (err) {
             return false;
@@ -275,10 +317,13 @@ export const useFavoriteListsStore = defineStore('favoriteLists', () => {
         createError,
         createErrors,
         addResults,
-        // Computed
+        favoritedIds,
+        // Computed / helpers
         selectedListCount,
+        isFavorited,
         // Actions
         fetchLists,
+        fetchFavoritedIds,
         createList,
         selectList,
         deselectList,

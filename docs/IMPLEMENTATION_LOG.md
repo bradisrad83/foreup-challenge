@@ -620,3 +620,391 @@ only outstanding item is direct coverage of the `services/api.js` wrapper, which
 is non-critical (mocked everywhere, exercised indirectly, manually verified
 earlier) and recorded as an explicit follow-up; the Phase 5 definition of done is
 satisfied — hence **Complete with follow-up** rather than **Complete**.
+
+---
+
+## 2026-06-20 — Accessibility and responsive refinements
+
+**Build-plan phase:** Phase 6 — Accessibility, responsive behavior, and browser review
+**Status:** Complete with follow-up
+**Commit:** 5249c65 (merged to development via PR #9, bc25112)
+
+### Summary
+
+Refinement-only pass over the existing Vue UI for accessibility and responsive
+behavior — no new features and no API/contract/DB changes. An audit found most of
+the groundwork already present (visible focus rings, `aria-hidden` decorative
+SVGs, `aria-live` regions in `ShowGrid`/`FavoritesPanel`, `role="alert"` on
+errors, descriptive image `alt` text, `truncate`/`line-clamp` for long titles,
+the responsive 2→6-column grid, and the dialog focus-trap/Escape/focus-restore).
+Three targeted changes were made: (1) `AppDialog` now sets initial focus on the
+first meaningful **content** control (querying the `.dialog-content` area, with a
+`tabindex="-1"` panel fallback) instead of the header close button, and locks
+body scroll while open (cleared on close and on unmount); (2) `AppHeader` adds
+ArrowLeft/ArrowRight keyboard navigation to the Browse / My Lists `role="tablist"`
+control; (3) `FavoriteListDetails` extends its `aria-live` region to also announce
+the empty and loaded-count states.
+
+### Key files
+
+- `resources/js/components/shared/AppDialog.vue` (initial focus to content +
+  body-scroll lock + `tabindex="-1"` fallback)
+- `resources/js/components/layout/AppHeader.vue` (tablist arrow-key navigation)
+- `resources/js/components/favorites/FavoriteListDetails.vue` (extended aria-live)
+- `resources/js/tests/components/AppDialog.test.js` (+5 tests),
+  `resources/js/tests/components/AppHeader.test.js` (new, +6 tests)
+
+### Decisions and alignment
+
+- Pure refinement: no new features, no API contract or database changes, no new
+  dependencies, no `v-html`, no router/inertia, no TVmaze calls. Consistent with
+  DECISIONS #12/#20/#23 and CLAUDE.md (semantic HTML, accessible controls, no
+  untrusted HTML).
+- Deferred intentionally (out of Phase 6 a11y/responsive scope): the unused
+  `selectedListCount` getter and the `App.test.js` dead variable (Phase 7
+  cleanup); the per-card dialog-instance refactor (feature-level); the
+  `services/api.js` wrapper test (Phase 5 follow-up).
+
+### Verification
+
+Commands actually run in this handoff:
+
+- `npm run test` → passed: 12 test files, 104 tests (93 prior + 11 new for the
+  dialog focus/scroll-lock and tablist arrow keys; no existing test weakened).
+- `npm run build` → passed.
+- `php artisan test` not run — no backend changes (PHP suite green at the Phase 5
+  handoff: 111 tests).
+- No live TVmaze: all frontend tests mock `services/api.js`; the frontend calls
+  only `/api/*`.
+
+Behavior coverage:
+
+- **Verified (automated):** dialog initial focus targets the content area (not the
+  close button) with a panel fallback; body-scroll lock on open and release on
+  close/unmount; Escape closes and focus is restored; tablist ArrowLeft/ArrowRight
+  switching with correct `aria-selected`.
+- **Verified (manual, developer):** keyboard tab-through with visible focus on all
+  controls; opening the add-to-list dialog via keyboard lands focus on a content
+  control and Escape returns focus to the trigger; arrow-key tab switching; layout
+  holds at mobile/tablet/desktop with long titles truncating/wrapping; the error
+  (502) state renders correctly. The developer reported the manual pass as "looked
+  great."
+- **Verified (command):** `npm run test` and `npm run build` pass.
+- **Not verified:** formal screen-reader (NVDA/VoiceOver/JAWS) testing of the
+  `aria-live` announcements beyond the developer's visual/keyboard pass; the
+  `services/api.js` wrapper still has no direct unit test (carried from Phase 5).
+
+Known limitations / non-blocking findings (from `/review-feature`): the tablist
+arrow-key handler switches the selection but does not move DOM focus to the newly
+selected tab (incomplete roving-tabindex; harmless for a two-tab control); the
+body-scroll lock does not compensate for scrollbar width (possible minor layout
+shift on desktop); the `.dialog-content` focus hook is a class used by JS rather
+than a data attribute.
+
+### AI workflow
+
+- Agents: `frontend-engineer` (Sonnet) — audit, refinements, and tests.
+- Skills: `read-project-docs`, `write-tests`.
+- Commands: `/review-feature` (confirmed refinements; flagged the roving-focus and
+  scrollbar-width nits as Low/Optional; re-ran the suite), then `/feature-handoff`
+  (an initial run correctly held the phase at Incomplete pending the manual
+  a11y/responsive pass; this entry is written after that pass was completed).
+- Human checkpoints: developer performed the manual keyboard/responsive/error-state
+  verification and confirmed it, then merged PR #9.
+
+### Follow-ups
+
+- Add `resources/js/tests/services/api.test.js` (mock global `fetch`) — carried
+  from Phase 5.
+- Optional a11y polish: move DOM focus to the newly selected tab on arrow-key
+  navigation (full roving-tabindex); scrollbar-width compensation on the
+  body-scroll lock.
+- Phase 7 cleanup: remove the unused `selectedListCount` getter and the
+  `App.test.js` dead variable.
+
+Status justification: every Phase 6 acceptance criterion is Verified — the
+frontend suite and build pass by command; the dialog-focus/scroll-lock/Escape and
+tablist arrow-key refinements are covered by new automated tests; and the manual
+acceptance criteria (keyboard focus visibility, responsive layout, long-title
+overflow, and the 502 error state) were confirmed by an explicitly performed
+developer browser/keyboard pass. The remaining items (formal screen-reader pass,
+the `services/api.js` wrapper test) are non-critical and listed as explicit
+follow-ups; the Phase 6 definition of done is satisfied — hence **Complete with
+follow-up** rather than **Complete**.
+
+---
+
+## 2026-06-20 — Backlog enhancements: show-details modal and favorites grid
+
+**Build-plan phase:** Post-Phase-6 backlog enhancements (not a numbered phase)
+**Status:** Complete with follow-up
+**Commit:** 5aeb000 (details modal) + Pending (favorites grid)
+
+### Summary
+
+Two user-facing frontend enhancements drawn from `docs/BACKLOG.md` /
+DECISIONS #24, done before the Phase 7 final pass:
+
+1. **Show-details modal (DECISIONS #24).** Clicking a show card's poster or
+   title opens `ShowDetailsModal` (reusing `AppDialog`) with the full plain-text
+   summary and all normalized fields — no extra API call, no `v-html`, no Vue
+   Router. The card poster/title are keyboard-accessible "View details" buttons.
+   The modal carries the same add-to-list heart as the card; clicking it closes
+   the modal and opens the existing list picker (a sequential swap, to avoid two
+   stacked dialogs fighting over Escape/focus-trap/scroll-lock).
+
+2. **Favorites detail as a grid.** A list's saved shows now render in the same
+   full-width responsive grid as Browse (new `FavoriteCard`), replacing the
+   earlier narrow centered column of wide rows. Each `FavoriteCard` mirrors the
+   Browse card (poster, name, meta, genres, summary) with a remove "✕" in the
+   corner instead of the add heart, and opens the details modal on poster/title
+   click. The favorite's modal is configured `can-add="false"` `can-remove="true"`,
+   so it shows a remove "✕" that removes the show and closes the modal. The
+   previous `RemoveFavoriteButton.vue` was retired (its job moved into
+   `FavoriteCard`); `FavoritesPanel` dropped its `max-w-3xl` so the detail is
+   full-width.
+
+### Key files
+
+- `resources/js/components/shows/ShowDetailsModal.vue` (new; `canAdd`/`canRemove`)
+- `resources/js/components/shows/ShowCard.vue` (poster/title open details;
+  add-to-list from the modal)
+- `resources/js/components/favorites/FavoriteCard.vue` (new)
+- `resources/js/components/favorites/FavoriteListDetails.vue` (rows → grid)
+- `resources/js/components/layout/FavoritesPanel.vue` (full-width detail)
+- removed `resources/js/components/favorites/RemoveFavoriteButton.vue`
+- `docs/DECISIONS.md` (#24 marked Implemented)
+- tests: `ShowDetailsModal.test.js`, `ShowCard.test.js`, `FavoriteCard.test.js`
+  (new), `FavoriteListDetails.test.js`
+
+### Decisions and alignment
+
+- No backend, API contract, or database changes — both features reuse data the
+  client already holds (the favorite is a stored snapshot with the same shape as
+  a normalized show). No new dependencies. No `v-html`; summaries/names are text.
+- A modal (not a route) keeps "no Vue Router" (#12) / one-screen state-driven
+  (#23) intact. Transient dialog/removing state is kept local to components.
+- DECISIONS #24 updated from "planned" to "Implemented".
+
+### Verification
+
+Commands actually run in this handoff:
+
+- `npm run test` → passed: 14 test files, 122 tests (93 from Phase 5 + the new
+  modal/card/grid coverage). No live network; API mocked; Pinia reset per test.
+- `npm run build` → passed.
+
+Behavior coverage:
+
+- **Verified (automated):** poster/title open the details modal; the modal renders
+  the full summary as plain text (raw markup not interpreted), all genres, a
+  no-summary fallback, and an official-site link only for `http(s)` URLs
+  (`javascript:` guarded); add-to-list from the modal closes details and opens
+  the picker; the favorites detail renders one `FavoriteCard` per favorite; the
+  card's remove "✕" calls the store with the right id; removing from inside the
+  modal removes and closes the modal; the modal shows the add heart vs. the remove
+  "✕" per `canAdd`/`canRemove`.
+- **Verified (build):** production build passes.
+- **Not verified (automated):** the visual/responsive feel of the new grid and
+  modal (developer browser check); the `services/api.js` wrapper test (carried
+  Phase 5 follow-up).
+
+### AI workflow
+
+- Agent: implemented in the main session (small, iterative UI changes) rather than
+  delegated.
+- Skills: `implement-vue-feature` patterns; `write-tests` for the new coverage.
+- Human checkpoints: developer requested the detail modal, then the title trigger,
+  the modal heart (replacing a footer button), the favorites grid (with a
+  screenshot prompting the layout decision), and the in-modal remove "✕".
+
+### Follow-ups
+
+- Membership endpoint (`GET /api/favorites/ids` + contract update) — would enable
+  "remove from a Browse card's modal" and the filled-heart "favorited" indicator
+  (still in `docs/BACKLOG.md`).
+- Carried from Phase 5: a direct `services/api.js` wrapper test.
+- Possible DRY: extract a shared card base used by both `ShowCard` and
+  `FavoriteCard` (currently parallel markup).
+
+Status justification: both enhancements are implemented and covered by new
+deterministic Vitest tests (122 passing) with a passing build; they add no
+backend/contract/DB surface. The only unverified items — the visual feel
+(developer browser check) and the carried `services/api.js` test — are
+non-critical and listed as explicit follow-ups, so this is **Complete with
+follow-up**.
+
+---
+
+## 2026-06-20 — Favorited indicator (browse grid filled heart)
+
+**Build-plan phase:** Post-Phase-6 backlog enhancement (not a numbered phase)
+**Status:** Complete with follow-up
+**Commit:** 93943f0
+
+### Summary
+
+A show card's heart fills (rose) when that show is already saved in **any**
+favorite list. Adds `GET /api/favorites/ids` → `{ "data": [int, …] }` returning
+the distinct TVmaze `external_id`s of every saved show across all lists (a show
+in multiple lists appears once). The `favoriteLists` Pinia store loads the set on
+mount (`fetchFavoritedIds`), exposes an `isFavorited(externalId)` helper, and
+keeps it in sync: optimistic mark on add-to-list; an authoritative re-fetch after
+remove and delete-list (so the heart only un-fills when the show is gone from
+*every* list). `ShowCard` binds the heart's `fill`/colour to `isFavorited`.
+
+### Key files
+
+- `app/Http/Controllers/Api/FavoriteController.php` (`ids()`), `routes/api.php`
+- `docs/API_CONTRACT.md` (new endpoint documented), `tests/Feature/FavoriteIdsTest.php`
+- `resources/js/services/api.js` (`getFavoriteIds`), `resources/js/stores/favoriteLists.js`
+  (`favoritedIds`, `fetchFavoritedIds`, `isFavorited`, sync hooks)
+- `resources/js/App.vue` (fetch ids on mount), `resources/js/components/shows/ShowCard.vue`
+- tests: `tests/stores/favoriteLists.test.js`, `tests/components/ShowCard.test.js`
+  (+ `getFavoriteIds` added to App/FavoriteCard/FavoriteListDetails mocks)
+
+### Decisions and alignment
+
+- Thin controller method (single `select()->distinct()->orderBy()->pluck()` — no
+  N+1, SQLite-compatible); returns the documented `{ "data": [...] }`. No API
+  Resource (a scalar id list). The API contract was documented in the same change
+  (no silent drift). No database schema change.
+- `favoritedIds` is shared Pinia state (read by every card), per #11; transient UI
+  state stays local. Frontend calls only `/api/*`; no auth beyond #9; no `v-html`.
+
+### Verification
+
+Commands actually run in this handoff:
+
+- `./vendor/bin/pint --test` → passed.
+- `php artisan test` → passed: 113 tests, 257 assertions (incl. 2 new in
+  `FavoriteIdsTest`).
+- `npm run test` → passed: 14 files, 127 tests (incl. 5 new for this feature).
+- `npm run build` → passed.
+- No live network: backend on SQLite `:memory:`; all frontend tests mock
+  `services/api.js` (`getFavoriteIds` mocked in 5 files); frontend calls `/api/*`.
+
+Behavior coverage:
+
+- **Verified (automated):** endpoint returns distinct external_ids across all
+  lists (a show in two lists appears once) and `{ "data": [] }` when empty;
+  `fetchFavoritedIds` populates the set and `isFavorited` reflects it; add-to-list
+  marks the show favorited; remove re-fetches the set (un-fills only when gone
+  from all lists); the heart renders filled (`fill="currentColor"`) when favorited
+  and outline (`fill="none"`) otherwise.
+- **Verified (command):** Pint, both suites, and the build pass.
+- **Not verified:** the delete-list re-sync path and the 409-duplicate-still-marks
+  branch have no direct test (the code does both; only the add/remove branches are
+  asserted); the actual rose colour in a browser was not manually recorded (the
+  behavioural `fill` attribute is tested; the colour is pure styling).
+- **Not applicable:** TVmaze/backend service behaviour (unchanged).
+
+### AI workflow
+
+- Implemented in the main session (small cross-cutting feature) rather than
+  delegated; patterns from `implement-laravel-feature` / `implement-vue-feature`,
+  tests via `write-tests`.
+- Commands: `/review-feature` (flagged the await-blocking re-fetch and the two
+  coverage gaps as Low; recommended Ready for feature handoff), then
+  `/feature-handoff` (this).
+- Human checkpoints: developer asked "how hard would the fill color be?" and chose
+  to do it properly (backend endpoint + contract + frontend), then requested the
+  commit.
+
+### Follow-ups
+
+- Add tests for the delete-list re-sync and the 409-duplicate-marks branch.
+- Consider fire-and-forget for `fetchFavoritedIds()` in `removeFromList` /
+  `deleteList` so the primary action isn't blocked on the indicator refresh.
+- Carried: a direct `services/api.js` wrapper test (from Phase 5).
+
+Status justification: every material behavior is Verified by new deterministic
+backend + frontend tests (distinctness, the add/remove sync, and the rendered
+heart state), with Pint, both suites, and the build passing and no live network.
+The unverified items (delete-resync test, duplicate-marks test, the manual colour
+glance) are non-critical and listed as explicit follow-ups — hence **Complete
+with follow-up** rather than **Complete**.
+
+---
+
+## 2026-06-20 — App branding (Showlist) and search-clear polish
+
+**Build-plan phase:** Post-Phase-6 polish (not a numbered phase)
+**Status:** Complete
+**Commit:** Pending
+
+### Summary
+
+Small UI/identity polish:
+
+1. **App name "Showlist".** The browser tab previously showed "Laravel" (the
+   title was `config('app.name')`, which reads the local `.env` `APP_NAME=Laravel`).
+   The Blade `<title>` is now a hardcoded `Showlist — Browse & save TV shows` so
+   it is reliable regardless of `.env`. The header brand text and `.env.example`
+   `APP_NAME` were updated to match.
+2. **TV favicon.** Added `public/favicon.svg` (a white TV — screen + antenna — on
+   an indigo rounded square, matching the app accent) and linked it in the Blade
+   `<head>`. The prior `public/favicon.ico` was an empty 0-byte file.
+3. **Search box: removed the duplicate clear control.** `type="search"` made
+   Chrome/WebKit render its own native clear "✕" on top of the component's custom
+   Clear button. A scoped style hides the native
+   `::-webkit-search-cancel-button` / `-decoration` while keeping `type="search"`
+   for its semantics (mobile search keyboard, screen-reader announcement).
+
+### Key files
+
+- `resources/views/app.blade.php` (title + favicon link)
+- `public/favicon.svg` (new)
+- `resources/js/components/layout/AppHeader.vue` (brand text)
+- `resources/js/components/shows/SearchInput.vue` (scoped style hiding the native
+  search clear)
+- `.env.example` (`APP_NAME=Showlist`)
+
+### Decisions and alignment
+
+- No backend, API contract, or database changes; no new dependencies; no `v-html`.
+- The title is hardcoded rather than `config('app.name')` because the developer's
+  local `.env` cannot be edited from here and still reads `APP_NAME=Laravel`; this
+  guarantees the correct tab title. It can be made config-driven again by setting
+  `APP_NAME=Showlist` in `.env`.
+
+### Verification
+
+Commands actually run in this handoff:
+
+- `npm run test` → passed: 14 files, 127 tests (no change in count; no test
+  depends on the brand text or the input `type`).
+- `npm run build` → passed.
+- `curl https://foreup-challenge.test/favicon.svg` → HTTP 200 (`image/svg+xml`).
+- `curl https://foreup-challenge.test` → `<title>Showlist — Browse & save TV
+  shows</title>` in the served HTML.
+
+Behavior coverage:
+
+- **Verified (command):** the production build passes; the full frontend suite
+  passes; the favicon is served (200) and the tab title renders as "Showlist …".
+- **Not applicable (automated):** hiding the native search "✕" is a WebKit
+  pseudo-element style not observable in jsdom; it is pure styling. The
+  developer reported the duplicate control and the scoped rule removes it (visual
+  confirmation on reload).
+
+### AI workflow
+
+- Implemented in the main session (trivial polish).
+- Commands: `/feature-handoff` (this).
+- Human checkpoints: developer requested an app name + a TV favicon, and reported
+  the duplicate search "✕"; the name "Showlist" was the assistant's pick, left
+  easily changeable.
+
+### Follow-ups
+
+- Optional: delete the empty `public/favicon.ico`, or add a small PNG/ICO fallback
+  for browsers without SVG-favicon support (modern browsers use the SVG).
+- Optional: set `APP_NAME=Showlist` in the local `.env` and restore the
+  config-driven `<title>` if a single source of truth is preferred.
+
+Status justification: the change is small, frontend-only, and fully verified —
+the build and full suite pass, and the favicon (200) and tab title were confirmed
+in the actually-served HTML. The only non-automated item (the native search "✕"
+suppression) is pure WebKit styling confirmed visually by the developer. No
+material behavior is unverified — hence **Complete**.

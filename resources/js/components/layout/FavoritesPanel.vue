@@ -17,7 +17,7 @@ const isDetail = computed(() => store.selectedListId !== null);
 <template>
     <section aria-label="Favorite lists">
         <!-- Detail view (self-contained: own back + delete controls) -->
-        <div v-if="isDetail" class="max-w-3xl">
+        <div v-if="isDetail">
             <FavoriteListDetails />
         </div>
 
