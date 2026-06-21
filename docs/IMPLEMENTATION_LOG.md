@@ -833,3 +833,178 @@ backend/contract/DB surface. The only unverified items — the visual feel
 (developer browser check) and the carried `services/api.js` test — are
 non-critical and listed as explicit follow-ups, so this is **Complete with
 follow-up**.
+
+---
+
+## 2026-06-20 — Favorited indicator (browse grid filled heart)
+
+**Build-plan phase:** Post-Phase-6 backlog enhancement (not a numbered phase)
+**Status:** Complete with follow-up
+**Commit:** 93943f0
+
+### Summary
+
+A show card's heart fills (rose) when that show is already saved in **any**
+favorite list. Adds `GET /api/favorites/ids` → `{ "data": [int, …] }` returning
+the distinct TVmaze `external_id`s of every saved show across all lists (a show
+in multiple lists appears once). The `favoriteLists` Pinia store loads the set on
+mount (`fetchFavoritedIds`), exposes an `isFavorited(externalId)` helper, and
+keeps it in sync: optimistic mark on add-to-list; an authoritative re-fetch after
+remove and delete-list (so the heart only un-fills when the show is gone from
+*every* list). `ShowCard` binds the heart's `fill`/colour to `isFavorited`.
+
+### Key files
+
+- `app/Http/Controllers/Api/FavoriteController.php` (`ids()`), `routes/api.php`
+- `docs/API_CONTRACT.md` (new endpoint documented), `tests/Feature/FavoriteIdsTest.php`
+- `resources/js/services/api.js` (`getFavoriteIds`), `resources/js/stores/favoriteLists.js`
+  (`favoritedIds`, `fetchFavoritedIds`, `isFavorited`, sync hooks)
+- `resources/js/App.vue` (fetch ids on mount), `resources/js/components/shows/ShowCard.vue`
+- tests: `tests/stores/favoriteLists.test.js`, `tests/components/ShowCard.test.js`
+  (+ `getFavoriteIds` added to App/FavoriteCard/FavoriteListDetails mocks)
+
+### Decisions and alignment
+
+- Thin controller method (single `select()->distinct()->orderBy()->pluck()` — no
+  N+1, SQLite-compatible); returns the documented `{ "data": [...] }`. No API
+  Resource (a scalar id list). The API contract was documented in the same change
+  (no silent drift). No database schema change.
+- `favoritedIds` is shared Pinia state (read by every card), per #11; transient UI
+  state stays local. Frontend calls only `/api/*`; no auth beyond #9; no `v-html`.
+
+### Verification
+
+Commands actually run in this handoff:
+
+- `./vendor/bin/pint --test` → passed.
+- `php artisan test` → passed: 113 tests, 257 assertions (incl. 2 new in
+  `FavoriteIdsTest`).
+- `npm run test` → passed: 14 files, 127 tests (incl. 5 new for this feature).
+- `npm run build` → passed.
+- No live network: backend on SQLite `:memory:`; all frontend tests mock
+  `services/api.js` (`getFavoriteIds` mocked in 5 files); frontend calls `/api/*`.
+
+Behavior coverage:
+
+- **Verified (automated):** endpoint returns distinct external_ids across all
+  lists (a show in two lists appears once) and `{ "data": [] }` when empty;
+  `fetchFavoritedIds` populates the set and `isFavorited` reflects it; add-to-list
+  marks the show favorited; remove re-fetches the set (un-fills only when gone
+  from all lists); the heart renders filled (`fill="currentColor"`) when favorited
+  and outline (`fill="none"`) otherwise.
+- **Verified (command):** Pint, both suites, and the build pass.
+- **Not verified:** the delete-list re-sync path and the 409-duplicate-still-marks
+  branch have no direct test (the code does both; only the add/remove branches are
+  asserted); the actual rose colour in a browser was not manually recorded (the
+  behavioural `fill` attribute is tested; the colour is pure styling).
+- **Not applicable:** TVmaze/backend service behaviour (unchanged).
+
+### AI workflow
+
+- Implemented in the main session (small cross-cutting feature) rather than
+  delegated; patterns from `implement-laravel-feature` / `implement-vue-feature`,
+  tests via `write-tests`.
+- Commands: `/review-feature` (flagged the await-blocking re-fetch and the two
+  coverage gaps as Low; recommended Ready for feature handoff), then
+  `/feature-handoff` (this).
+- Human checkpoints: developer asked "how hard would the fill color be?" and chose
+  to do it properly (backend endpoint + contract + frontend), then requested the
+  commit.
+
+### Follow-ups
+
+- Add tests for the delete-list re-sync and the 409-duplicate-marks branch.
+- Consider fire-and-forget for `fetchFavoritedIds()` in `removeFromList` /
+  `deleteList` so the primary action isn't blocked on the indicator refresh.
+- Carried: a direct `services/api.js` wrapper test (from Phase 5).
+
+Status justification: every material behavior is Verified by new deterministic
+backend + frontend tests (distinctness, the add/remove sync, and the rendered
+heart state), with Pint, both suites, and the build passing and no live network.
+The unverified items (delete-resync test, duplicate-marks test, the manual colour
+glance) are non-critical and listed as explicit follow-ups — hence **Complete
+with follow-up** rather than **Complete**.
+
+---
+
+## 2026-06-20 — App branding (Showlist) and search-clear polish
+
+**Build-plan phase:** Post-Phase-6 polish (not a numbered phase)
+**Status:** Complete
+**Commit:** Pending
+
+### Summary
+
+Small UI/identity polish:
+
+1. **App name "Showlist".** The browser tab previously showed "Laravel" (the
+   title was `config('app.name')`, which reads the local `.env` `APP_NAME=Laravel`).
+   The Blade `<title>` is now a hardcoded `Showlist — Browse & save TV shows` so
+   it is reliable regardless of `.env`. The header brand text and `.env.example`
+   `APP_NAME` were updated to match.
+2. **TV favicon.** Added `public/favicon.svg` (a white TV — screen + antenna — on
+   an indigo rounded square, matching the app accent) and linked it in the Blade
+   `<head>`. The prior `public/favicon.ico` was an empty 0-byte file.
+3. **Search box: removed the duplicate clear control.** `type="search"` made
+   Chrome/WebKit render its own native clear "✕" on top of the component's custom
+   Clear button. A scoped style hides the native
+   `::-webkit-search-cancel-button` / `-decoration` while keeping `type="search"`
+   for its semantics (mobile search keyboard, screen-reader announcement).
+
+### Key files
+
+- `resources/views/app.blade.php` (title + favicon link)
+- `public/favicon.svg` (new)
+- `resources/js/components/layout/AppHeader.vue` (brand text)
+- `resources/js/components/shows/SearchInput.vue` (scoped style hiding the native
+  search clear)
+- `.env.example` (`APP_NAME=Showlist`)
+
+### Decisions and alignment
+
+- No backend, API contract, or database changes; no new dependencies; no `v-html`.
+- The title is hardcoded rather than `config('app.name')` because the developer's
+  local `.env` cannot be edited from here and still reads `APP_NAME=Laravel`; this
+  guarantees the correct tab title. It can be made config-driven again by setting
+  `APP_NAME=Showlist` in `.env`.
+
+### Verification
+
+Commands actually run in this handoff:
+
+- `npm run test` → passed: 14 files, 127 tests (no change in count; no test
+  depends on the brand text or the input `type`).
+- `npm run build` → passed.
+- `curl https://foreup-challenge.test/favicon.svg` → HTTP 200 (`image/svg+xml`).
+- `curl https://foreup-challenge.test` → `<title>Showlist — Browse & save TV
+  shows</title>` in the served HTML.
+
+Behavior coverage:
+
+- **Verified (command):** the production build passes; the full frontend suite
+  passes; the favicon is served (200) and the tab title renders as "Showlist …".
+- **Not applicable (automated):** hiding the native search "✕" is a WebKit
+  pseudo-element style not observable in jsdom; it is pure styling. The
+  developer reported the duplicate control and the scoped rule removes it (visual
+  confirmation on reload).
+
+### AI workflow
+
+- Implemented in the main session (trivial polish).
+- Commands: `/feature-handoff` (this).
+- Human checkpoints: developer requested an app name + a TV favicon, and reported
+  the duplicate search "✕"; the name "Showlist" was the assistant's pick, left
+  easily changeable.
+
+### Follow-ups
+
+- Optional: delete the empty `public/favicon.ico`, or add a small PNG/ICO fallback
+  for browsers without SVG-favicon support (modern browsers use the SVG).
+- Optional: set `APP_NAME=Showlist` in the local `.env` and restore the
+  config-driven `<title>` if a single source of truth is preferred.
+
+Status justification: the change is small, frontend-only, and fully verified —
+the build and full suite pass, and the favicon (200) and tab title were confirmed
+in the actually-served HTML. The only non-automated item (the native search "✕"
+suppression) is pure WebKit styling confirmed visually by the developer. No
+material behavior is unverified — hence **Complete**.
