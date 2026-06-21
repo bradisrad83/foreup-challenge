@@ -6,9 +6,9 @@ relevant one before implementing a feature.
 
 ## Project
 
-This is a **foreUP coding challenge**: a TV-show search and favorite-list
-application. Users browse and search shows (data from TVmaze, via a Laravel API)
-and organize them into favorite lists. See [README.md](README.md) for status and
+This is a **TV-show search and favorite-list application**. Users browse and
+search shows (data from TVmaze, via a Laravel API) and organize them into
+favorite lists. See [README.md](README.md) for status and
 [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) for scope and phases.
 
 ## Technology (fixed stack)
