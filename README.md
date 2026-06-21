@@ -155,8 +155,29 @@ faked with `Http::fake()`.
 
 ## Screenshots
 
-> _Add screenshots of the Browse grid, a show-details modal, and the Favorites
-> view here before submission (e.g. under `docs/screenshots/`)._
+**Browse / search grid** — type to search; the heart fills for shows already
+saved to a list.
+
+![Browse and search grid of TV shows](docs/screenshots/main-search-grid.png)
+
+**Show details** — click a poster or title to open the full details modal
+(plain-text summary, all genres, official-site link).
+
+![Show details modal over the grid](docs/screenshots/main-grid-modal.png)
+
+**Add to lists** — save a show to one or more favorite lists from a single
+picker.
+
+![Add-to-list modal with selectable lists](docs/screenshots/add-to-list-modal.png)
+
+**My Lists** — all lists with their counts, plus a form to create a new one.
+
+![My Lists view with list chips and a create form](docs/screenshots/favorites-lists.png)
+
+**List details** — a selected list's saved shows as a grid; remove individually
+or delete the whole list.
+
+![A favorite list's saved shows](docs/screenshots/favorites-lists-details.png)
 
 ## Known limitations
 
