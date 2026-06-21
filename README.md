@@ -207,10 +207,11 @@ or delete the whole list.
 
 ## AI-assistance disclosure
 
-This project was developed with AI assistance (Claude Code) for planning,
-scaffolding, implementation, review, and documentation. The work followed a
-documented, phase-by-phase workflow with explicit review and handoff steps
-(`/review-feature`, `/feature-handoff`) and specialized agents. All AI-generated
-changes were reviewed by the developer, and every command and test reported as
-passing was actually run before being relied upon. See
-[docs/AI_WORKFLOW.md](docs/AI_WORKFLOW.md) for details.
+AI tooling (Claude Code) was used throughout this project to accelerate the
+work — scaffolding, drafting implementation, and assisting with review and
+documentation. The architecture, design decisions, and trade-offs were directed
+and owned by the developer, who reviewed and corrected all AI-generated output.
+The work followed a documented, phase-by-phase workflow with explicit review and
+handoff steps (`/review-feature`, `/feature-handoff`) and specialized agents, and
+every command and test reported as passing was actually run before being relied
+upon. See [docs/AI_WORKFLOW.md](docs/AI_WORKFLOW.md) for details.
