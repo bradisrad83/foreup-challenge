@@ -142,6 +142,7 @@ function truncate(text, maxLength = 160) {
         <ShowDetailsModal
             :open="detailsOpen"
             :show="show"
+            :is-favorited="isFavorited"
             @close="detailsOpen = false"
             @add-to-list="onAddFromDetails"
         />

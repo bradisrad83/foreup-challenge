@@ -109,6 +109,30 @@ describe('ShowDetailsModal', () => {
         expect(wrapper.emitted('add-to-list')).toBeTruthy();
     });
 
+    it('fills the add heart (rose, filled) when is-favorited is true', () => {
+        mount(ShowDetailsModal, {
+            props: { open: true, show: makeShow(), isFavorited: true },
+            attachTo: document.body,
+        });
+
+        const addBtn = document.querySelector('[role="dialog"] button[aria-label*="add to more lists"]');
+        expect(addBtn).not.toBeNull();
+        expect(addBtn.className).toContain('text-rose-500');
+        expect(addBtn.querySelector('svg').getAttribute('fill')).toBe('currentColor');
+    });
+
+    it('leaves the add heart unfilled (gray, fill none) when not favorited', () => {
+        mount(ShowDetailsModal, {
+            props: { open: true, show: makeShow(), isFavorited: false },
+            attachTo: document.body,
+        });
+
+        const addBtn = document.querySelector('[role="dialog"] button[aria-label*="favorite list"]');
+        expect(addBtn).not.toBeNull();
+        expect(addBtn.className).toContain('text-gray-500');
+        expect(addBtn.querySelector('svg').getAttribute('fill')).toBe('none');
+    });
+
     it('shows no add heart and no remove button by default config combos', () => {
         // canAdd default true → add heart present, remove absent
         mount(ShowDetailsModal, { props: { open: true, show: makeShow() }, attachTo: document.body });

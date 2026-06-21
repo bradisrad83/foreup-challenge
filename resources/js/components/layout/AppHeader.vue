@@ -55,8 +55,10 @@ function onTablistKeydown(event) {
                     <span class="text-base font-semibold text-gray-900">Showlist</span>
                 </div>
 
-                <!-- Right side: search + My Lists control -->
-                <div class="flex items-center gap-3">
+                <!-- Right side: search + My Lists control.
+                     Stacks vertically on very narrow screens (< 384px) so the
+                     search bar gets its own row instead of being crushed. -->
+                <div class="flex flex-col gap-3 min-[384px]:flex-row min-[384px]:items-center">
                     <!-- Search input -->
                     <div class="w-full sm:max-w-sm">
                         <SearchInput />
@@ -64,7 +66,7 @@ function onTablistKeydown(event) {
 
                     <!-- Browse / My Lists segmented control -->
                     <div
-                        class="inline-flex shrink-0 rounded-lg border border-gray-300 bg-gray-100 p-0.5 text-sm font-medium"
+                        class="inline-flex shrink-0 self-start rounded-lg border border-gray-300 bg-gray-100 p-0.5 text-sm font-medium min-[384px]:self-auto"
                         role="tablist"
                         aria-label="Browse or My Lists"
                         @keydown="onTablistKeydown"
