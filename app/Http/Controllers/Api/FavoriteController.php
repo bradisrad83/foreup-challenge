@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFavoriteRequest;
 use App\Http\Resources\FavoriteResource;
+use App\Models\Favorite;
 use App\Models\FavoriteList;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +13,24 @@ use Illuminate\Http\Response;
 
 class FavoriteController extends Controller
 {
+    /**
+     * GET /api/favorites/ids
+     *
+     * Returns the distinct TVmaze external_ids of every saved show across all
+     * lists. Lets the client mark already-favorited shows (e.g. a filled heart)
+     * without loading each list's contents.
+     */
+    public function ids(): JsonResponse
+    {
+        $ids = Favorite::query()
+            ->select('external_id')
+            ->distinct()
+            ->orderBy('external_id')
+            ->pluck('external_id');
+
+        return response()->json(['data' => $ids]);
+    }
+
     /**
      * POST /api/favorite-lists/{favoriteList}/favorites
      *

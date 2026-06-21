@@ -44,3 +44,54 @@ rather than promising full keyword search.
 
 **Suggested slot:** after the core search → favorites flow (BUILD_PLAN Phases
 3–4) is complete.
+
+---
+
+## "Favorited" indicator on show cards
+
+**Status:** ✅ Implemented (see
+[IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md)). **Type:** Cross-cutting —
+backend (+ contract) and frontend.
+
+Delivered as designed below: `GET /api/favorites/ids` was added to
+[API_CONTRACT.md](API_CONTRACT.md) and the frontend fills the heart from that
+set, kept in sync on add/remove. The original proposal is kept for context.
+
+**What:** On the Browse grid, fill the heart icon (pink/red) when a show is
+already saved in **at least one** list, so users can tell at a glance what's
+already favorited (it can still be in multiple lists).
+
+**Why it needs a backend addition:** the card must know whether a show's
+`external_id` is in **any** list. The lists index deliberately stays lean
+(counts only, no membership), and a list's favorites are only loaded when that
+list is opened — so the client has no global "what's favorited" set. A
+client-only set (tracking adds during the session) would be wrong after a
+reload, so that shortcut is rejected.
+
+**Preferred approach:**
+- Add a small endpoint, e.g. `GET /api/favorites/ids` → a JSON array of the
+  distinct favorited `external_id`s. This is an **API_CONTRACT.md change** and
+  must update that document **first**.
+- Frontend: load the set on mount into the `favoriteLists` store; the card fills
+  the heart when its `external_id` is in the set; update the set on add/remove
+  so it stays in sync without a refetch.
+
+**Effort:** moderate (backend endpoint + contract + frontend). `backend-engineer`
+for the endpoint, then frontend.
+
+---
+
+## Favorites detail as a responsive grid
+
+**Status:** ✅ Implemented (see
+[IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md)). **Type:** Frontend-only polish.
+
+**What:** Render a selected list's favorites as a responsive card grid (similar
+to the Browse grid) instead of the current single full-width column of wide
+rows, for visual consistency and better use of space on desktop.
+
+**Notes:** Pure frontend restyle of `FavoriteListDetails` (possibly a slimmer
+shared card with a remove button). Lowest priority — the current layout works.
+
+**Suggested slot:** fits naturally into **BUILD_PLAN Phase 6** (accessibility,
+responsive behavior, and browser review).

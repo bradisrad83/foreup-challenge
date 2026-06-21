@@ -83,3 +83,16 @@ function clearSearch() {
         </button>
     </div>
 </template>
+
+<style scoped>
+/*
+ * Hide the browser's native "clear" control for type="search" (WebKit/Chrome)
+ * so it doesn't duplicate our own Clear button. type="search" is kept for its
+ * semantics (search keyboard on mobile, screen-reader announcement).
+ */
+input[type='search']::-webkit-search-cancel-button,
+input[type='search']::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+}
+</style>

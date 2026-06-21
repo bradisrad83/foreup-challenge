@@ -241,6 +241,25 @@ Remove one favorite from the list.
 
 ---
 
+## Favorited show ids
+
+### `GET /api/favorites/ids`
+
+Returns the **distinct** TVmaze `external_id`s of every saved show across **all**
+lists. Lets the client mark already-favorited shows (e.g. a filled heart on the
+browse grid) without loading each list's contents. A show saved to multiple
+lists appears **once**.
+
+**Success — 200**
+
+```json
+{ "data": [169, 200, 431] }
+```
+
+Empty database returns `{ "data": [] }`.
+
+---
+
 ## Adding a show to multiple lists
 
 **Decision: one `POST` per selected list** (no batch endpoint).
