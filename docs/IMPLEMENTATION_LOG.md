@@ -620,3 +620,114 @@ only outstanding item is direct coverage of the `services/api.js` wrapper, which
 is non-critical (mocked everywhere, exercised indirectly, manually verified
 earlier) and recorded as an explicit follow-up; the Phase 5 definition of done is
 satisfied — hence **Complete with follow-up** rather than **Complete**.
+
+---
+
+## 2026-06-20 — Accessibility and responsive refinements
+
+**Build-plan phase:** Phase 6 — Accessibility, responsive behavior, and browser review
+**Status:** Complete with follow-up
+**Commit:** 5249c65 (merged to development via PR #9, bc25112)
+
+### Summary
+
+Refinement-only pass over the existing Vue UI for accessibility and responsive
+behavior — no new features and no API/contract/DB changes. An audit found most of
+the groundwork already present (visible focus rings, `aria-hidden` decorative
+SVGs, `aria-live` regions in `ShowGrid`/`FavoritesPanel`, `role="alert"` on
+errors, descriptive image `alt` text, `truncate`/`line-clamp` for long titles,
+the responsive 2→6-column grid, and the dialog focus-trap/Escape/focus-restore).
+Three targeted changes were made: (1) `AppDialog` now sets initial focus on the
+first meaningful **content** control (querying the `.dialog-content` area, with a
+`tabindex="-1"` panel fallback) instead of the header close button, and locks
+body scroll while open (cleared on close and on unmount); (2) `AppHeader` adds
+ArrowLeft/ArrowRight keyboard navigation to the Browse / My Lists `role="tablist"`
+control; (3) `FavoriteListDetails` extends its `aria-live` region to also announce
+the empty and loaded-count states.
+
+### Key files
+
+- `resources/js/components/shared/AppDialog.vue` (initial focus to content +
+  body-scroll lock + `tabindex="-1"` fallback)
+- `resources/js/components/layout/AppHeader.vue` (tablist arrow-key navigation)
+- `resources/js/components/favorites/FavoriteListDetails.vue` (extended aria-live)
+- `resources/js/tests/components/AppDialog.test.js` (+5 tests),
+  `resources/js/tests/components/AppHeader.test.js` (new, +6 tests)
+
+### Decisions and alignment
+
+- Pure refinement: no new features, no API contract or database changes, no new
+  dependencies, no `v-html`, no router/inertia, no TVmaze calls. Consistent with
+  DECISIONS #12/#20/#23 and CLAUDE.md (semantic HTML, accessible controls, no
+  untrusted HTML).
+- Deferred intentionally (out of Phase 6 a11y/responsive scope): the unused
+  `selectedListCount` getter and the `App.test.js` dead variable (Phase 7
+  cleanup); the per-card dialog-instance refactor (feature-level); the
+  `services/api.js` wrapper test (Phase 5 follow-up).
+
+### Verification
+
+Commands actually run in this handoff:
+
+- `npm run test` → passed: 12 test files, 104 tests (93 prior + 11 new for the
+  dialog focus/scroll-lock and tablist arrow keys; no existing test weakened).
+- `npm run build` → passed.
+- `php artisan test` not run — no backend changes (PHP suite green at the Phase 5
+  handoff: 111 tests).
+- No live TVmaze: all frontend tests mock `services/api.js`; the frontend calls
+  only `/api/*`.
+
+Behavior coverage:
+
+- **Verified (automated):** dialog initial focus targets the content area (not the
+  close button) with a panel fallback; body-scroll lock on open and release on
+  close/unmount; Escape closes and focus is restored; tablist ArrowLeft/ArrowRight
+  switching with correct `aria-selected`.
+- **Verified (manual, developer):** keyboard tab-through with visible focus on all
+  controls; opening the add-to-list dialog via keyboard lands focus on a content
+  control and Escape returns focus to the trigger; arrow-key tab switching; layout
+  holds at mobile/tablet/desktop with long titles truncating/wrapping; the error
+  (502) state renders correctly. The developer reported the manual pass as "looked
+  great."
+- **Verified (command):** `npm run test` and `npm run build` pass.
+- **Not verified:** formal screen-reader (NVDA/VoiceOver/JAWS) testing of the
+  `aria-live` announcements beyond the developer's visual/keyboard pass; the
+  `services/api.js` wrapper still has no direct unit test (carried from Phase 5).
+
+Known limitations / non-blocking findings (from `/review-feature`): the tablist
+arrow-key handler switches the selection but does not move DOM focus to the newly
+selected tab (incomplete roving-tabindex; harmless for a two-tab control); the
+body-scroll lock does not compensate for scrollbar width (possible minor layout
+shift on desktop); the `.dialog-content` focus hook is a class used by JS rather
+than a data attribute.
+
+### AI workflow
+
+- Agents: `frontend-engineer` (Sonnet) — audit, refinements, and tests.
+- Skills: `read-project-docs`, `write-tests`.
+- Commands: `/review-feature` (confirmed refinements; flagged the roving-focus and
+  scrollbar-width nits as Low/Optional; re-ran the suite), then `/feature-handoff`
+  (an initial run correctly held the phase at Incomplete pending the manual
+  a11y/responsive pass; this entry is written after that pass was completed).
+- Human checkpoints: developer performed the manual keyboard/responsive/error-state
+  verification and confirmed it, then merged PR #9.
+
+### Follow-ups
+
+- Add `resources/js/tests/services/api.test.js` (mock global `fetch`) — carried
+  from Phase 5.
+- Optional a11y polish: move DOM focus to the newly selected tab on arrow-key
+  navigation (full roving-tabindex); scrollbar-width compensation on the
+  body-scroll lock.
+- Phase 7 cleanup: remove the unused `selectedListCount` getter and the
+  `App.test.js` dead variable.
+
+Status justification: every Phase 6 acceptance criterion is Verified — the
+frontend suite and build pass by command; the dialog-focus/scroll-lock/Escape and
+tablist arrow-key refinements are covered by new automated tests; and the manual
+acceptance criteria (keyboard focus visibility, responsive layout, long-title
+overflow, and the 502 error state) were confirmed by an explicitly performed
+developer browser/keyboard pass. The remaining items (formal screen-reader pass,
+the `services/api.js` wrapper test) are non-critical and listed as explicit
+follow-ups; the Phase 6 definition of done is satisfied — hence **Complete with
+follow-up** rather than **Complete**.
